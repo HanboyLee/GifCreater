@@ -85,3 +85,30 @@
 ### 5. 交互式序列帧胶卷
 * 拆解完成后，所有帧直接陈列在底部时间轴上；
 * 选中某个废帧（如闭眼、AI 变形帧）可直接点击删除或右键删除，剩余帧立刻重新索引并实时联动给播放器与导出引擎。
+
+---
+
+## 四、 CI/CD 自动化构建与全自动 Release 架构设计 (v2.1)
+
+### 1. 流水线分级双门禁
+```text
+Push (main) / Tag (v*) 
+   │
+   ▼
+[Job 1: TDD & Coverage Gate] (windows-latest)
+   ├── 安装环境与依赖 (requirements-dev.txt)
+   └── pytest tests/ --cov=gif_tool --cov-fail-under=90
+   │   └── 覆盖率 < 90% 立即熔断中断
+   ▼
+[Job 2: Build & Release] (needs: test)
+   ├── PyInstaller 自动化构建免安装 Windows EXE
+   ├── 自动压缩为 GifCreater-windows-x64.zip
+   └── 全自动发布 Release (Latest Rolling Release)
+```
+
+### 2. 全自动 Latest 滚动发布策略 (方案 1)
+* **免除人工打 Tag**：每次合并/推送至 `main` 分支，流水线自动覆盖更新名为 `latest` 的 GitHub Release；
+* **永久固定下载直链**：
+  - 压缩包：`https://github.com/HanboyLee/GifCreater/releases/download/latest/GifCreater-windows-x64.zip`
+  - 单文件：`https://github.com/HanboyLee/GifCreater/releases/download/latest/GifCreater.exe`
+* **双模兼容**：依然保留推送 `v*` Tag 创建里程碑历史版本归档的能力。

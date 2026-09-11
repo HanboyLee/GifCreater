@@ -26,13 +26,16 @@
 
 ---
 
-## 🚀 使用方法
+## 🚀 下载与使用
 
-### 方式 1：最推荐（免安装独立运行）
-直接将目录下的 **`GifCreater.exe`** 发送给朋友或直接双击运行：
-- **无需安装任何 Python 环境或第三方依赖**；
-- 双击 `GifCreater.exe` 即可直接使用！
+### 方式 1：最推荐（下载最新绿色免安装版）
+直接从 GitHub 自动构建的最新发布页下载，开箱即用：
+- 📦 **[下载最新 GifCreater-windows-x64.zip 绿色压缩包 (推荐)](https://github.com/HanboyLee/GifCreater/releases/download/latest/GifCreater-windows-x64.zip)**
+- ⚡ **[下载最新 GifCreater.exe 单文件版](https://github.com/HanboyLee/GifCreater/releases/download/latest/GifCreater.exe)**
+- **无需安装 Python 或任何环境**，解压后双击即可直接使用！
+
+---
 
 ### 方式 2：Python 源码运行
 1. 安装依赖：`pip install -r requirements.txt`
-2. 双击 `run_gui.bat` 或 `python gui.py` 启动。
+2. 双击 `run_gui.bat` 或在终端运行 `python gui.py` 启动。

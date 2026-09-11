@@ -79,7 +79,32 @@ jobs:
             dist/GifCreater.exe
             dist/GifCreater-windows-x64.zip
 
-      - name: Publish GitHub Release
+      # 自动滚动发布 Latest 绿色免安装版 (推送至 main 分支时自动触发)
+      - name: Publish Latest Rolling Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 'GifCreater 最新构建版 (Continuous Latest)'
+          body: |
+            ## 🎞️ GifCreater 最新自动构建免安装版
+
+            此版本由 GitHub Actions 流水线全自动编译生成（已通过 90% TDD 单元测试门禁）。
+            - **关联 Commit**: `${{ github.sha }}`
+            - **更新时间**: `${{ github.event.head_commit.timestamp }}`
+
+            ### 📥 绿色安装包下载直链：
+            - 📦 **[GifCreater-windows-x64.zip (ZIP 压缩包推荐)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater-windows-x64.zip)**
+            - ⚡ **[GifCreater.exe (独立可执行文件直下)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater.exe)**
+          files: |
+            dist/GifCreater.exe
+            dist/GifCreater-windows-x64.zip
+          draft: false
+          prerelease: false
+          make_latest: true
+
+      # 正式里程碑版本发布 (推送 v* 标签时自动触发)
+      - name: Publish Tagged Milestone Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
