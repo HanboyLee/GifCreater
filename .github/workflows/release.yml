@@ -1,0 +1,89 @@
+name: CI & CD Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  # 阶段 1：质量门禁 (单元测试与 90% 覆盖率检查)
+  test:
+    name: Run TDD Tests & 90% Coverage Gate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run Pytest with 90% Coverage Gate
+        run: |
+          pytest tests/ --cov=gif_tool --cov-report=term-missing --cov-fail-under=90
+
+  # 阶段 2：自动化打包与 Release 部署
+  build-and-release:
+    name: Build Executable & Deploy Release
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build Windows Executable via PyInstaller
+        run: |
+          pyinstaller GifCreater.spec
+
+      - name: Compress Release Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\GifCreater.exe" -DestinationPath "dist\GifCreater-windows-x64.zip" -Force
+          Get-ChildItem dist/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GifCreater-windows-x64
+          path: |
+            dist/GifCreater.exe
+            dist/GifCreater-windows-x64.zip
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/GifCreater.exe
+            dist/GifCreater-windows-x64.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
