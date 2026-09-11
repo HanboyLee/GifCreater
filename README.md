@@ -1,7 +1,7 @@
 # 🎞️ GifCreater Studio (动画工坊)
 
 <p align="center">
-  <strong>English | [简体中文](README_zh.md)</strong>
+  <b>English</b> | <a href="README_zh.md"><b>简体中文</b></a>
 </p>
 
 <p align="center">
