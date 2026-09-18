@@ -42,13 +42,19 @@
   - 此类改动**允许免除前置讨论**，以保障敏捷修复；
   - 若 Bug 修复改变了隐式逻辑或数值阈值（如容差参数），需在 `docs/design.md` 的变更历史中追加一行记录，并在 `docs/requirements.md` 对应条目状态中确认。
 
-### 阶段 4：大版本里程碑结项与路线图回写 (Milestone Promotion & Roadmap Sync)
+### 阶段 4：大版本里程碑结项与路线图回写 (Milestone Promotion & Tag Release)
 - **触发条件**：
   - 某个规划大版本（如 v3.1、v3.4）在 `docs/requirements.md` 中的所有 Checklist 已 100% 勾选为 `- [x]` 并通过验收。
 - **强制动作**：
   - **路线图基线提升**：在同一个发布 Commit 中，同步修改 `docs/roadmap.md` 顶部的“当前基线版本号”；
   - **里程碑归档**：将该版本归入已交付稳定基线，并校准下一阶段近景（Next Horizon）的规划目标；
-  - **自动化一致性核验**：执行 `python scripts/tools/check_doc_sync.py` 确保两份文档版本基线完全咬合，严禁版本脱节。
+  - **自动化一致性核验**：执行 `python scripts/tools/check_doc_sync.py` 确保两份文档版本基线完全咬合，严禁版本脱节；
+  - **版本 Tag 驱动发布**：经确认无误后，通过推送版本标签触发 CD 自动化部署：
+    ```bash
+    git tag vX.Y.Z
+    git push origin vX.Y.Z
+    ```
+    由云端流水线全自动打包编译 Windows 独立安装包并生成正式 GitHub Release。
 
 ---
 

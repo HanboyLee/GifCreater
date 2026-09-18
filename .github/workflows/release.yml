@@ -72,10 +72,11 @@ jobs:
           python -m pytest tests/ --cov=src/gifcreater/core --cov=gif_tool --cov-report=term-missing --cov-fail-under=90
 
 
-  # 阶段 2：自动化打包与 Release 部署
+  # 阶段 2：自动化打包与 Release 部署 (仅限打 v* 版本 Tag 或手动调度时执行)
   build-and-release:
     name: Build Executable & Deploy Release
     needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - name: Checkout Code
@@ -110,37 +111,8 @@ jobs:
             dist/GifCreater.exe
             dist/GifCreater-windows-x64.zip
 
-      # 自动滚动发布 Latest 绿色免安装版 (推送至 main 分支时自动触发)
-      - name: Publish Latest Rolling Release
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: 'GifCreater Studio (Continuous Latest Build)'
-          body: |
-            ## 🎞️ GifCreater Studio — Latest Continuous Build
-
-            This standalone release package is automatically compiled and verified by GitHub Actions CI/CD (passed the $\ge 90\%$ TDD unit test coverage gate).
-
-            - **Target Commit**: `${{ github.sha }}`
-            - **Build Timestamp**: `${{ github.event.head_commit.timestamp }}`
-
-            ### 📥 Download Assets:
-            - 📦 **[GifCreater-windows-x64.zip (Recommended Portable Archive)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater-windows-x64.zip)**
-            - ⚡ **[GifCreater.exe (Standalone Green Executable)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater.exe)**
-
-            ---
-            *No installation or Python runtime required. Extract and double-click `GifCreater.exe` to run.*
-          files: |
-            dist/GifCreater.exe
-            dist/GifCreater-windows-x64.zip
-          draft: false
-          prerelease: false
-          make_latest: true
-
-      # 正式里程碑版本发布 (推送 v* 标签时自动触发)
-      - name: Publish Tagged Milestone Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      # 正式里程碑版本发布 (通过 v* 标签或手动调度触发)
+      - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -149,3 +121,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+
