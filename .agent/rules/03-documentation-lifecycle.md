@@ -52,3 +52,11 @@
 | **系统需求与详细设计** | `docs/requirements.md`<br>`docs/design.md` | 业务需求基线文档、详细设计与历史技术决策集中收口文档。 |
 | **用户与开发者手册** | `README.md`<br>`README_zh.md` | 面向终端用户与开发者的双语安装、运行与使用指南。 |
 | **AI 代理协作规则** | `AGENTS.md`<br>`.agent/rules/*.md` | AI 行为红线、质量门禁、Vibe Coding 约束与工程规范。 |
+
+---
+
+## 3. GitHub Releases 国际化语言规范 (English-Only Releases)
+
+- **纯英文红线**：所有面向公众的 GitHub Releases（包括发布标题、Release Notes 正文、Changelog、构建产物描述）**必须 100% 使用纯英文（English）撰写，严禁包含任何中文**。
+- **CI/CD 流水线守护**：`.github/workflows/release.yml` 中自动触发的 Rolling Release 及 Milestone Release 模板必须严格保持英文标准。
+

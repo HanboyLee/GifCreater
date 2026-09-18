@@ -85,17 +85,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: 'GifCreater 最新构建版 (Continuous Latest)'
+          name: 'GifCreater Studio (Continuous Latest Build)'
           body: |
-            ## 🎞️ GifCreater 最新自动构建免安装版
+            ## 🎞️ GifCreater Studio — Latest Continuous Build
 
-            此版本由 GitHub Actions 流水线全自动编译生成（已通过 90% TDD 单元测试门禁）。
-            - **关联 Commit**: `${{ github.sha }}`
-            - **更新时间**: `${{ github.event.head_commit.timestamp }}`
+            This standalone release package is automatically compiled and verified by GitHub Actions CI/CD (passed the $\ge 90\%$ TDD unit test coverage gate).
 
-            ### 📥 绿色安装包下载直链：
-            - 📦 **[GifCreater-windows-x64.zip (ZIP 压缩包推荐)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater-windows-x64.zip)**
-            - ⚡ **[GifCreater.exe (独立可执行文件直下)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater.exe)**
+            - **Target Commit**: `${{ github.sha }}`
+            - **Build Timestamp**: `${{ github.event.head_commit.timestamp }}`
+
+            ### 📥 Download Assets:
+            - 📦 **[GifCreater-windows-x64.zip (Recommended Portable Archive)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater-windows-x64.zip)**
+            - ⚡ **[GifCreater.exe (Standalone Green Executable)](https://github.com/${{ github.repository }}/releases/download/latest/GifCreater.exe)**
+
+            ---
+            *No installation or Python runtime required. Extract and double-click `GifCreater.exe` to run.*
           files: |
             dist/GifCreater.exe
             dist/GifCreater-windows-x64.zip

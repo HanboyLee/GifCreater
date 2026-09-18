@@ -16,6 +16,9 @@
 3. **文档管理统一收口原则**：
    - **所有专案文档统一在 `docs/`（需求与设计）、专案根目录 `spec/`（立项与规格书）以及 `.agent/rules/`（模块化 AI 规则库）目录下进行集中管理**。
    - 根目录下除规范入口文件（`README.md`、`ARCHITECTURE.md`、`AGENTS.md`、环境/打包配置文件）外，严禁随意创建散落的 `.md` 或其他格式文档。
+4. **GitHub Releases 国际化语言铁律 (English-Only Releases)**：
+   - **所有 GitHub Releases（发布版本名称、Release Notes 正文、更新说明及资产描述）必须 100% 使用纯英文（English）撰写，严禁包含任何中文**。
+   - CI/CD 自动化流水线（`.github/workflows/release.yml`）以及未来所有 Release 发布脚本必须严格保持纯英文格式。
 
 ---
 
