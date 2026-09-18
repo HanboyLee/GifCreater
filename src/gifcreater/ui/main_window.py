@@ -141,9 +141,12 @@ class MainWindow(MSFluentWindow):
         self.sidebar.gridParamChanged.connect(self._on_grid_param_changed)
         self.sidebar.timingChanged.connect(self._on_timing_changed)
         self.sidebar.captionChanged.connect(self.canvas.set_caption)
+        self.sidebar.captionConfigChanged.connect(self.canvas.set_caption_config)
+        self.canvas.captionPositionMoved.connect(self.sidebar.update_caption_position_ratio)
         self.sidebar.startProcessRequested.connect(self._start_slice_and_export)
         self.sidebar.openOutputRequested.connect(self._open_output_dir)
         work_layout.addWidget(self.sidebar)
+
 
 
         self.main_layout.addLayout(work_layout, 1)
@@ -288,6 +291,7 @@ class MainWindow(MSFluentWindow):
         base_name = self.current_file_path.stem if self.current_file_path else "animation"
         caption_text = self.sidebar.get_caption_text()
         caption_pos = self.sidebar.get_caption_position()
+        caption_cfg = self.sidebar.get_caption_config()
 
         self.export_worker = ExportWorker(
             frames=frames,
@@ -298,9 +302,11 @@ class MainWindow(MSFluentWindow):
             base_name=base_name,
             caption_text=caption_text,
             caption_pos=caption_pos,
+            caption_config=caption_cfg,
             parent=self,
         )
         self.export_worker.stageChanged.connect(self.label_status.setText)
+
         self.export_worker.exportFinished.connect(self._on_export_finished)
         self.export_worker.exportFailed.connect(self._on_worker_failed)
         self.export_worker.start()

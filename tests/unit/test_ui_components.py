@@ -93,7 +93,7 @@ def test_filmstrip_widget(qapp):
 
 
 def test_control_sidebar(qapp):
-    """测试现代参数控制侧边栏与配文预设控件"""
+    """测试现代参数控制侧边栏与配文变换控件"""
     sidebar = ControlSidebar()
 
     # 1. 默认预设 (微信表情包)
@@ -107,21 +107,32 @@ def test_control_sidebar(qapp):
     sidebar.combo_presets.setCurrentIndex(3)
     assert sidebar.get_export_preset() == "webp"
 
-    # 3. 配文输入与位置切换
-    assert sidebar.get_caption_text() == ""
-    assert sidebar.get_caption_position() == "bottom"
-
-    captured = []
-    sidebar.captionChanged.connect(lambda text, pos: captured.append((text, pos)))
+    # 3. 配文输入、旋转与配置获取
+    cfg_captured = []
+    sidebar.captionConfigChanged.connect(lambda cfg: cfg_captured.append(cfg))
 
     sidebar.edit_caption.setText("大吉大利")
     assert sidebar.get_caption_text() == "大吉大利"
-    assert len(captured) > 0
-    assert captured[-1] == ("大吉大利", "bottom")
+    assert len(cfg_captured) > 0
+    assert cfg_captured[-1].text == "大吉大利"
 
-    sidebar.rb_pos_top.setChecked(True)
+    # 旋转角度滑块与快捷键
+    sidebar._set_rotation_angle(-15)
+    assert sidebar.caption_rotation == -15.0
+    assert cfg_captured[-1].rotation_deg == -15.0
+
+    # 九宫格快捷对齐
+    sidebar._set_position_ratio(0.5, 0.12)
+    assert sidebar.caption_pos_y_ratio == 0.12
     assert sidebar.get_caption_position() == "top"
-    assert captured[-1] == ("大吉大利", "top")
+
+    # 一键模板
+    sidebar._apply_style_template("yellow")
+    assert sidebar.text_color_rgb == (250, 204, 21)
+    sidebar._apply_style_template("danger")
+    assert sidebar.text_color_rgb == (239, 68, 68)
+    sidebar._apply_style_template("watermark")
+    assert sidebar.slider_text_opacity.value() == 35
 
     # 4. 锁定与解锁处理状态
     sidebar.set_processing_state(True)
@@ -132,6 +143,33 @@ def test_control_sidebar(qapp):
     assert sidebar.btn_process.isEnabled() is True
     assert sidebar.edit_caption.isEnabled() is True
     assert sidebar.combo_presets.isEnabled() is True
+
+
+def test_canvas_caption_drag_interaction(qapp):
+    """测试画布配文图元拖拽与位置同步"""
+    from PyQt6.QtCore import QPointF
+    from src.gifcreater.core.caption import CaptionConfig
+
+    canvas = InteractiveCanvas()
+    pil_img = create_dummy_grid_image(200, 200)
+    grid = calculate_default_grid(200, 200, 2, 2)
+    canvas.set_source_image(pil_img, grid)
+
+    # 载入带角度与透明度的配置
+    cfg = CaptionConfig(text="可拖拽文字", pos_x_ratio=0.5, pos_y_ratio=0.88, rotation_deg=15.0)
+    canvas.set_caption_config(cfg)
+    assert canvas.caption_item is not None
+    assert canvas.caption_item.isVisible() is True
+
+    # 模拟鼠标拖拽释放至 (120, 80)
+    moved_signals = []
+    canvas.captionPositionMoved.connect(lambda x, y: moved_signals.append((x, y)))
+    canvas.on_caption_item_drag_finished(QPointF(120, 80))
+
+    assert len(moved_signals) > 0
+    assert canvas.caption_config.pos_x_ratio == pytest.approx(120 / 200, rel=1e-2)
+    assert canvas.caption_config.pos_y_ratio == pytest.approx(80 / 200, rel=1e-2)
+
 
 
 

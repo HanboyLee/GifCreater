@@ -13,7 +13,7 @@ GifCreater 交互式视口画布 (Interactive Canvas)
 import io
 from typing import List, Optional
 from PIL import Image
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPointF
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPointF, QRectF
 from PyQt6.QtGui import (
     QColor,
     QCursor,
@@ -32,10 +32,12 @@ from PyQt6.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
+    QStyle,
 )
 
 from ..core import GridConfig
-from ..core.caption import draw_caption
+from ..core.caption import draw_caption, CaptionConfig
+
 
 
 
@@ -128,12 +130,66 @@ class DraggableLineItem(QGraphicsLineItem):
             super().mouseReleaseEvent(event)
 
 
+class DraggableCaptionItem(QGraphicsItem):
+    """
+    可直接在画布上鼠标抓取平移微调的表情包配文交互图元
+    """
+    def __init__(self, parent_canvas):
+        super().__init__()
+        self.parent_canvas = parent_canvas
+        self.setAcceptHoverEvents(True)
+        self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
+        self.is_dragging = False
+        self.rect = QRectF(-70, -22, 140, 44)
+        self.setZValue(100)
+
+    def boundingRect(self) -> QRectF:
+        return self.rect
+
+    def paint(self, painter: QPainter, option, widget=None):
+        if self.is_dragging or option.state & QStyle.StateFlag.State_MouseOver:
+            pen = QPen(QColor(34, 211, 238, 220), 1.5, Qt.PenStyle.DashLine)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.setBrush(QColor(34, 211, 238, 30))
+            painter.drawRoundedRect(self.rect, 6, 6)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_dragging = True
+            self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+            self.update()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.is_dragging:
+            scene_pos = event.scenePos()
+            self.setPos(scene_pos)
+            self.parent_canvas.on_caption_item_moving(scene_pos)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self.is_dragging:
+            self.is_dragging = False
+            self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
+            self.update()
+            self.parent_canvas.on_caption_item_drag_finished(self.scenePos())
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+
+
 class InteractiveCanvas(QGraphicsView):
     """
     可交互画布：整合大图预览、网格线拖拽微调及动图原地播放器
     """
     gridModified = pyqtSignal(object)  # 发射 GridConfig
     frameChanged = pyqtSignal(int, int)  # 当前帧索引, 总帧数
+    captionPositionMoved = pyqtSignal(float, float)  # (x_ratio, y_ratio)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -153,9 +209,12 @@ class InteractiveCanvas(QGraphicsView):
         self.pixmap_item: Optional[QGraphicsPixmapItem] = None
         self.grid_lines: List[DraggableLineItem] = []
         self.grid_config: Optional[GridConfig] = None
+        self.caption_item: Optional[DraggableCaptionItem] = None
+        self.caption_config: Optional[CaptionConfig] = None
         self.placeholder_item = None
 
         self._show_placeholder()
+
 
         # 播放器状态与配文
         self.frames: List[Image.Image] = []
@@ -268,22 +327,71 @@ class InteractiveCanvas(QGraphicsView):
         self.grid_config.row_lines = h_lines
         self.gridModified.emit(self.grid_config)
 
-    # ---------------- 动图原地播放器控制 ----------------
+    # ---------------- 动图原地播放器与配文控制 ----------------
 
     def _generate_frame_pixmap(self, frame: Image.Image) -> QPixmap:
-        """根据当前配文状态动态生成帧 Pixmap (所见即所得)"""
-        if self.caption_text:
+        """根据当前配文配置动态生成帧 Pixmap (所见即所得)"""
+        if self.caption_config and self.caption_config.text:
+            rendered = draw_caption(frame, self.caption_config)
+            return pil_to_qpixmap(rendered)
+        elif self.caption_text:
             rendered = draw_caption(frame, self.caption_text, position=self.caption_pos)
             return pil_to_qpixmap(rendered)
         return pil_to_qpixmap(frame)
 
-    def set_caption(self, text: str, position: str = "bottom"):
-        """实时设置表情包配文并刷新预览 (WYSIWYG)"""
-        self.caption_text = text.strip() if text else ""
-        self.caption_pos = position or "bottom"
+    def set_caption_config(self, cfg: CaptionConfig):
+        """实时更新表情包配文与变换配置并刷新呈现 (WYSIWYG)"""
+        self.caption_config = cfg
+        self.caption_text = cfg.text.strip() if cfg and cfg.text else ""
+
+        w = max(100.0, self.scene.sceneRect().width())
+        h = max(100.0, self.scene.sceneRect().height())
+
+        if self.caption_text:
+            if not self.caption_item:
+                self.caption_item = DraggableCaptionItem(self)
+                self.scene.addItem(self.caption_item)
+
+            pos_x = w * cfg.pos_x_ratio
+            pos_y = h * cfg.pos_y_ratio
+            self.caption_item.setPos(pos_x, pos_y)
+            self.caption_item.setRotation(-cfg.rotation_deg)
+            self.caption_item.setVisible(True)
+        else:
+            if self.caption_item:
+                self.caption_item.setVisible(False)
+
         if self.frames:
             self.frame_pixmaps = [self._generate_frame_pixmap(f) for f in self.frames]
             self._display_current_frame()
+
+    def set_caption(self, text: str, position: str = "bottom"):
+        """兼容旧版纯文本设置"""
+        cfg = CaptionConfig(
+            text=text,
+            pos_y_ratio=0.12 if position == "top" else 0.88,
+        )
+        self.set_caption_config(cfg)
+
+    def on_caption_item_moving(self, scene_pos: QPointF):
+        """拖拽中回调"""
+        pass
+
+    def on_caption_item_drag_finished(self, scene_pos: QPointF):
+        """拖拽释放后，计算相对坐标并通知侧边栏"""
+        w = self.scene.sceneRect().width()
+        h = self.scene.sceneRect().height()
+        if w > 10 and h > 10:
+            rx = max(0.05, min(0.95, scene_pos.x() / w))
+            ry = max(0.05, min(0.95, scene_pos.y() / h))
+            if self.caption_config:
+                self.caption_config.pos_x_ratio = rx
+                self.caption_config.pos_y_ratio = ry
+            self.captionPositionMoved.emit(rx, ry)
+            if self.frames:
+                self.frame_pixmaps = [self._generate_frame_pixmap(f) for f in self.frames]
+                self._display_current_frame()
+
 
     def set_animation_frames(self, frames: List[Image.Image], boomerang: bool = False):
         """载入切片动图帧并准备播放"""

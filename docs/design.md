@@ -266,21 +266,30 @@ GifCreater/
 
 ---
 
-## 七、 v3.1 平台导出预设与表情包配文增强技术设计
+## 七、 v3.1 / v3.2 平台导出预设与表情包自由配文技术设计
 
-### 1. 表情包文字叠加无头渲染引擎 (`core/caption.py` / `core/exporter.py`)
-- **算法设计原则**：
-  1. **零侵入与零开销**：当配文文本为空或仅包含空白字符时，直接返回原图引用，不执行任何 PIL Draw 操作，保证原始图像 0 压缩失真与 0 额外耗时；
-  2. **高对比度黑边白字 (Stroke Rendering)**：
-     - 采用 Pillow 经典文本描边 API：`draw.text((x, y), text, font=font, fill=(255, 255, 255), stroke_width=stroke_px, stroke_fill=(0, 0, 0))`；
-     - 描边宽度自适应：`stroke_px = max(1, int(font_size * 0.08))`；
-  3. **文字位置与安全内边距**：
-     - `bottom` 模式（默认）：文字底部与图像下边缘保持 `max(8, int(h * 0.05))` 像素安全间距；
-     - `top` 模式：文字顶部与图像上边缘保持 `max(8, int(h * 0.05))` 像素安全间距；
-     - 水平方向：严格居中对齐 `x = (w - text_w) // 2`；
-  4. **跨平台字体回退机制 (Font Fallback)**：
-     - 优先寻找 Windows 中文字体：`C:/Windows/Fonts/msyh.ttc`（微软雅黑）、`simhei.ttf`（黑体）；
-     - 备选加载系统通用中文字体或 Pillow 默认字体；若载入失败自动优雅降级，杜绝崩溃。
+### 1. 表情包高级文字叠加与变换无头引擎 (`core/caption.py` / `core/exporter.py`)
+- **配置数据契约 (`CaptionConfig`)**：
+  ```python
+  @dataclass
+  class CaptionConfig:
+      text: str = ""
+      pos_x_ratio: float = 0.5       # 相对水平中心 (0.0~1.0)
+      pos_y_ratio: float = 0.88      # 相对垂直中心 (0.0~1.0)
+      rotation_deg: float = 0.0      # 旋转角度 (-180° ~ 180°)
+      font_size: Optional[int] = None
+      text_color: Tuple[int, int, int, int] = (255, 255, 255, 255)      # RGBA 填充色与透明度
+      stroke_color: Tuple[int, int, int, int] = (0, 0, 0, 255)          # RGBA 描边色与透明度
+      stroke_width: int = 2                                             # 描边粗细 (px)
+  ```
+- **算法与渲染流水线**：
+  1. **零开销旁路**：`if not config.text or not config.text.strip(): return image`；
+  2. **透明图层文字绘制**：在与单行文字等宽高的透明临时图层上使用 `ImageDraw.Draw` 绘制带描边与 Alpha 的文字；
+  3. **双三次插值抗锯齿旋转**：`rotated = text_layer.rotate(config.rotation_deg, expand=True, resample=Image.Resampling.BICUBIC)`；
+  4. **精确居中锚定与 Alpha 复合**：
+     - 计算中心点 `cx = int(w * config.pos_x_ratio)`, `cy = int(h * config.pos_y_ratio)`；
+     - 计算粘贴左上角 `x = cx - rotated.width // 2`, `y = cy - rotated.height // 2`；
+     - 使用 `Image.alpha_composite` 合成，彻底避免带透明度图层叠加时产生黑边或混色瑕疵。
 
 ### 2. 平台导出预设管理器 (`config/presets.py`)
 - **预设枚举与规格映射**：
@@ -312,11 +321,15 @@ GifCreater/
 ### 3. Fluent UI 表现层与交互集成 (`ui/sidebar.py` & `ui/canvas.py`)
 - **配文设置卡片 (CardWidget)**：
   - 放置于控制面板中间层；
-  - 包含配文单行输入框（`LineEdit`，带清除按钮与可见 Label）；
-  - 包含位置切换单选组（`RadioButton`：底部居中 / 顶部居中）；
-- **所见即所得联动**：
-  - 输入框 `textChanged` 信号实时触发画布 `canvas.set_caption(text, position)` 刷新；
-  - 动图播放与静止预览统一应用配文图层。
+  - 包含文本输入 `LineEdit`；
+  - 包含旋转角度滑块与 `-15°`, `0°`, `15°`, `45°` 快捷按钮；
+  - 包含文字颜色拾取器、主体透明度滑块（0%~100%）；
+  - 包含描边颜色拾取器、描边粗细（0~10px）；
+  - 包含九宫格快捷归位按键与经典爆款模板；
+- **画布所见即所得交互 (`canvas.py`)**：
+  - 画布中的文字图元支持鼠标直接抓取自由平移，实时回传 `(x_ratio, y_ratio)`；
+  - 动图播放与静止预览统一动态渲染带角度、透明度和描边的配文图层。
+
 
 ---
 

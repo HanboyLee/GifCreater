@@ -37,12 +37,14 @@ from .exporter import (
     natural_sort_key,
 )
 from .caption import (
+    CaptionConfig,
     draw_caption,
     apply_caption_to_frames,
 )
 
 __all__ = [
     "GridConfig",
+    "CaptionConfig",
     "calculate_default_grid",
     "detect_dividers_universal",
     "get_grid_divider_coords",
@@ -61,4 +63,5 @@ __all__ = [
     "draw_caption",
     "apply_caption_to_frames",
 ]
+
 

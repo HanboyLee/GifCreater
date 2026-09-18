@@ -94,10 +94,63 @@ def test_get_font_fallback():
     assert font is not None
 
 
+def test_caption_config_full_transform():
+    """测试 CaptionConfig 任意坐标、旋转、透明度与边框定制"""
+    from src.gifcreater.core.caption import CaptionConfig
+
+    img = _create_test_image(mode="RGBA", size=(200, 200), color=(30, 30, 30, 255))
+    cfg = CaptionConfig(
+        text="倾斜动感配文",
+        pos_x_ratio=0.4,
+        pos_y_ratio=0.6,
+        rotation_deg=-15.0,
+        font_size=20,
+        text_color=(255, 255, 0, 180),   # 半透明黄色
+        stroke_color=(0, 0, 0, 255),
+        stroke_width=3,
+    )
+    result = draw_caption(img, cfg)
+
+    assert result.size == (200, 200)
+    assert result.tobytes() != img.tobytes()
+
+
+def test_caption_config_no_stroke():
+    """测试 stroke_width=0 无边框纯文字模式"""
+    from src.gifcreater.core.caption import CaptionConfig
+
+    img = _create_test_image(mode="RGB", size=(160, 160), color=(0, 0, 0))
+    cfg = CaptionConfig(
+        text="纯无边框文字",
+        pos_x_ratio=0.5,
+        pos_y_ratio=0.5,
+        rotation_deg=45.0,
+        stroke_width=0,
+    )
+    result = draw_caption(img, cfg)
+    assert result.size == (160, 160)
+    assert result.tobytes() != img.tobytes()
+
+
+def test_apply_caption_to_frames_with_config():
+    """测试批量帧应用 CaptionConfig"""
+    from src.gifcreater.core.caption import CaptionConfig
+
+    frames = [_create_test_image(size=(100, 100)) for _ in range(2)]
+    cfg = CaptionConfig(text="批量帧配文", rotation_deg=10.0)
+    out = apply_caption_to_frames(frames, cfg)
+    assert len(out) == 2
+
+    # 空配置短路
+    empty_cfg = CaptionConfig(text="")
+    assert apply_caption_to_frames(frames, empty_cfg) is frames
+
+
 def test_get_font_fallback_when_no_system_fonts(monkeypatch):
     """测试当系统字体均不存在时的默认字体加载与异常回退"""
     import os
     monkeypatch.setattr(os.path, "exists", lambda p: False)
     font = _get_font(24)
     assert font is not None
+
 

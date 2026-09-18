@@ -11,8 +11,10 @@ GifCreater 现代参数控制面板 (Control Sidebar)
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QButtonGroup,
+    QColorDialog,
     QFrame,
     QHBoxLayout,
     QVBoxLayout,
@@ -34,6 +36,7 @@ from qfluentwidgets import (
 )
 
 from ..config.presets import PRESETS, list_preset_items
+from ..core.caption import CaptionConfig
 
 
 class ControlSidebar(SingleDirectionScrollArea):
@@ -43,6 +46,8 @@ class ControlSidebar(SingleDirectionScrollArea):
     gridParamChanged = pyqtSignal(int, int, bool)   # (rows, cols, smart_crop)
     timingChanged = pyqtSignal(int, int, bool)      # (duration_ms, end_pause_ms, boomerang)
     captionChanged = pyqtSignal(str, str)           # (caption_text, caption_pos)
+    captionConfigChanged = pyqtSignal(object)       # 发射 CaptionConfig 对象
+
     startProcessRequested = pyqtSignal()            # 点击一键拆解合成
     openOutputRequested = pyqtSignal()              # 点击打开输出目录
 
@@ -50,6 +55,13 @@ class ControlSidebar(SingleDirectionScrollArea):
         super().__init__(parent)
         self.setFixedWidth(310)
         self.setWidgetResizable(True)
+
+        # 配文与变换状态
+        self.caption_pos_x_ratio: float = 0.50
+        self.caption_pos_y_ratio: float = 0.88
+        self.caption_rotation: float = 0.0
+        self.text_color_rgb: tuple = (255, 255, 255)
+        self.stroke_color_rgb: tuple = (0, 0, 0)
         self.setStyleSheet(
             """
             ControlSidebar {
@@ -142,34 +154,121 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         layout.addWidget(card_grid)
 
-        # ---------------- 卡片 2: 表情包配文增强 (所见即所得) ----------------
+        # ---------------- 卡片 2: 表情包自由配文工作室 (所见即所得) ----------------
         card_caption = CardWidget(container)
         layout_caption = QVBoxLayout(card_caption)
         layout_caption.setSpacing(8)
 
-        layout_caption.addWidget(SubtitleLabel("✍️ 表情包文字配文 (可选)"))
+        layout_caption.addWidget(SubtitleLabel("✍️ 表情包自由配文工作室"))
 
         layout_caption.addWidget(BodyLabel("配文内容 (留空则原画输出):"))
         self.edit_caption = LineEdit()
-        self.edit_caption.setPlaceholderText("例如: 疯狂星期四 / 收到")
+        self.edit_caption.setPlaceholderText("输入文字，在画布上可直接鼠标拖拽")
         self.edit_caption.setClearButtonEnabled(True)
         self.edit_caption.textChanged.connect(self._on_caption_changed)
         layout_caption.addWidget(self.edit_caption)
 
-        # 配文位置单选
-        layout_caption.addWidget(BodyLabel("文字位置:"))
-        self.btn_group_pos = QButtonGroup(self)
-        self.rb_pos_bottom = RadioButton("底部居中 (默认经典)")
-        self.rb_pos_top = RadioButton("顶部横条 (Top)")
-        self.rb_pos_bottom.setChecked(True)
-        self.btn_group_pos.addButton(self.rb_pos_bottom)
-        self.btn_group_pos.addButton(self.rb_pos_top)
-        self.btn_group_pos.buttonToggled.connect(self._on_caption_changed)
+        # 旋转角度控制
+        rot_header = QHBoxLayout()
+        self.label_rotation = BodyLabel("旋转角度: 0°")
+        rot_header.addWidget(self.label_rotation)
+        rot_header.addStretch()
+        layout_caption.addLayout(rot_header)
 
-        pos_box = QHBoxLayout()
-        pos_box.addWidget(self.rb_pos_bottom)
-        pos_box.addWidget(self.rb_pos_top)
-        layout_caption.addLayout(pos_box)
+        # 常用角度快捷按钮
+        rot_quick_box = QHBoxLayout()
+        for deg in [-15, 0, 15, 45]:
+            btn_deg = PushButton(f"{deg:+}°" if deg != 0 else "0°")
+            btn_deg.setFixedHeight(22)
+            btn_deg.setStyleSheet("font-size: 10px; padding: 2px 4px;")
+            btn_deg.clicked.connect(lambda _, d=deg: self._set_rotation_angle(d))
+            rot_quick_box.addWidget(btn_deg)
+        layout_caption.addLayout(rot_quick_box)
+
+        self.slider_rotation = Slider(Qt.Orientation.Horizontal)
+        self.slider_rotation.setRange(-180, 180)
+        self.slider_rotation.setValue(0)
+        self.slider_rotation.valueChanged.connect(self._on_rotation_slider_changed)
+        layout_caption.addWidget(self.slider_rotation)
+
+        # 颜色与透明度选择区
+        style_grid = QHBoxLayout()
+        # 文字颜色与透明度
+        col_text_box = QVBoxLayout()
+        self.btn_text_color = PushButton("文字颜色")
+        self.btn_text_color.setFixedHeight(26)
+        self.btn_text_color.clicked.connect(self._pick_text_color)
+        col_text_box.addWidget(self.btn_text_color)
+
+        self.label_text_opacity = BodyLabel("透明度: 100%")
+        self.slider_text_opacity = Slider(Qt.Orientation.Horizontal)
+        self.slider_text_opacity.setRange(10, 100)
+        self.slider_text_opacity.setValue(100)
+        self.slider_text_opacity.valueChanged.connect(self._on_text_opacity_changed)
+        col_text_box.addWidget(self.label_text_opacity)
+        col_text_box.addWidget(self.slider_text_opacity)
+        style_grid.addLayout(col_text_box)
+
+        # 描边颜色与粗细
+        col_stroke_box = QVBoxLayout()
+        self.btn_stroke_color = PushButton("描边颜色")
+        self.btn_stroke_color.setFixedHeight(26)
+        self.btn_stroke_color.clicked.connect(self._pick_stroke_color)
+        col_stroke_box.addWidget(self.btn_stroke_color)
+
+        self.label_stroke_width = BodyLabel("描边粗细: 2px")
+        self.slider_stroke_width = Slider(Qt.Orientation.Horizontal)
+        self.slider_stroke_width.setRange(0, 10)
+        self.slider_stroke_width.setValue(2)
+        self.slider_stroke_width.valueChanged.connect(self._on_stroke_width_changed)
+        col_stroke_box.addWidget(self.label_stroke_width)
+        col_stroke_box.addWidget(self.slider_stroke_width)
+        style_grid.addLayout(col_stroke_box)
+
+        layout_caption.addLayout(style_grid)
+
+        # 九宫格快捷归位
+        layout_caption.addWidget(BodyLabel("九宫格快捷归位 (亦可直接在画布拖拽):"))
+        grid_pos_layout = QHBoxLayout()
+        pos_buttons = [
+            ("↖ 顶左", 0.20, 0.15),
+            ("↑ 顶中", 0.50, 0.12),
+            ("↗ 顶右", 0.80, 0.15),
+            ("• 正中", 0.50, 0.50),
+            ("↓ 底中", 0.50, 0.88),
+            ("↘ 底右", 0.80, 0.88),
+        ]
+        for name, rx, ry in pos_buttons:
+            b = PushButton(name)
+            b.setFixedHeight(22)
+            b.setStyleSheet("font-size: 10px; padding: 2px 2px;")
+            b.clicked.connect(lambda _, x=rx, y=ry: self._set_position_ratio(x, y))
+            grid_pos_layout.addWidget(b)
+        layout_caption.addLayout(grid_pos_layout)
+
+        # 一键爆款风格模板
+        layout_caption.addWidget(BodyLabel("一键风格模板:"))
+        template_box = QHBoxLayout()
+        tpl_btn_classic = PushButton("🔥 经典黑白")
+        tpl_btn_classic.setFixedHeight(24)
+        tpl_btn_classic.clicked.connect(lambda: self._apply_style_template("classic"))
+        template_box.addWidget(tpl_btn_classic)
+
+        tpl_btn_yellow = PushButton("⚡ 荧光亮黄")
+        tpl_btn_yellow.setFixedHeight(24)
+        tpl_btn_yellow.clicked.connect(lambda: self._apply_style_template("yellow"))
+        template_box.addWidget(tpl_btn_yellow)
+
+        tpl_btn_danger = PushButton("🚨 高能爆红")
+        tpl_btn_danger.setFixedHeight(24)
+        tpl_btn_danger.clicked.connect(lambda: self._apply_style_template("danger"))
+        template_box.addWidget(tpl_btn_danger)
+
+        tpl_btn_wm = PushButton("👻 半透水印")
+        tpl_btn_wm.setFixedHeight(24)
+        tpl_btn_wm.clicked.connect(lambda: self._apply_style_template("watermark"))
+        template_box.addWidget(tpl_btn_wm)
+        layout_caption.addLayout(template_box)
 
         layout.addWidget(card_caption)
 
@@ -177,6 +276,7 @@ class ControlSidebar(SingleDirectionScrollArea):
         card_anim = CardWidget(container)
         layout_anim = QVBoxLayout(card_anim)
         layout_anim.setSpacing(8)
+
 
         layout_anim.addWidget(SubtitleLabel("⏱️ 动画节奏与循环"))
 
@@ -270,10 +370,82 @@ class ControlSidebar(SingleDirectionScrollArea):
             self.rb_loop_boomerang.isChecked(),
         )
 
+    def _on_rotation_slider_changed(self, val: int):
+        self.caption_rotation = float(val)
+        self.label_rotation.setText(f"旋转角度: {val:+d}°" if val != 0 else "旋转角度: 0°")
+        self._on_caption_changed()
+
+    def _set_rotation_angle(self, deg: int):
+        self.slider_rotation.setValue(deg)
+
+    def _pick_text_color(self):
+        curr = QColor(*self.text_color_rgb)
+        col = QColorDialog.getColor(curr, self, "选择文字颜色")
+        if col.isValid():
+            self.text_color_rgb = (col.red(), col.green(), col.blue())
+            self.btn_text_color.setStyleSheet(f"background-color: rgb({col.red()},{col.green()},{col.blue()}); color: {'#000' if col.lightness() > 128 else '#fff'};")
+            self._on_caption_changed()
+
+    def _pick_stroke_color(self):
+        curr = QColor(*self.stroke_color_rgb)
+        col = QColorDialog.getColor(curr, self, "选择描边颜色")
+        if col.isValid():
+            self.stroke_color_rgb = (col.red(), col.green(), col.blue())
+            self.btn_stroke_color.setStyleSheet(f"background-color: rgb({col.red()},{col.green()},{col.blue()}); color: {'#000' if col.lightness() > 128 else '#fff'};")
+            self._on_caption_changed()
+
+    def _on_text_opacity_changed(self, val: int):
+        self.label_text_opacity.setText(f"透明度: {val}%")
+        self._on_caption_changed()
+
+    def _on_stroke_width_changed(self, val: int):
+        self.label_stroke_width.setText(f"描边粗细: {val}px")
+        self._on_caption_changed()
+
+    def _set_position_ratio(self, x_ratio: float, y_ratio: float):
+        self.caption_pos_x_ratio = x_ratio
+        self.caption_pos_y_ratio = y_ratio
+        self._on_caption_changed()
+
+    def update_caption_position_ratio(self, x_ratio: float, y_ratio: float):
+        """画布鼠标拖拽后回传更新相对坐标"""
+        self.caption_pos_x_ratio = max(0.05, min(0.95, x_ratio))
+        self.caption_pos_y_ratio = max(0.05, min(0.95, y_ratio))
+        # 触发通知
+        self._on_caption_changed()
+
+    def _apply_style_template(self, name: str):
+        if name == "classic":
+            self.text_color_rgb = (255, 255, 255)
+            self.stroke_color_rgb = (0, 0, 0)
+            self.slider_text_opacity.setValue(100)
+            self.slider_stroke_width.setValue(2)
+        elif name == "yellow":
+            self.text_color_rgb = (250, 204, 21)  # #FACC15
+            self.stroke_color_rgb = (0, 0, 0)
+            self.slider_text_opacity.setValue(100)
+            self.slider_stroke_width.setValue(3)
+        elif name == "danger":
+            self.text_color_rgb = (239, 68, 68)   # #EF4444
+            self.stroke_color_rgb = (255, 255, 255)
+            self.slider_text_opacity.setValue(100)
+            self.slider_stroke_width.setValue(2)
+        elif name == "watermark":
+            self.text_color_rgb = (255, 255, 255)
+            self.stroke_color_rgb = (0, 0, 0)
+            self.slider_text_opacity.setValue(35)
+            self.slider_stroke_width.setValue(1)
+
+        self.btn_text_color.setStyleSheet(f"background-color: rgb({self.text_color_rgb[0]},{self.text_color_rgb[1]},{self.text_color_rgb[2]}); color: {'#000' if self.text_color_rgb[0] > 128 else '#fff'};")
+        self.btn_stroke_color.setStyleSheet(f"background-color: rgb({self.stroke_color_rgb[0]},{self.stroke_color_rgb[1]},{self.stroke_color_rgb[2]}); color: {'#000' if self.stroke_color_rgb[0] > 128 else '#fff'};")
+        self._on_caption_changed()
+
     def _on_caption_changed(self):
         text = self.get_caption_text()
         pos = self.get_caption_position()
         self.captionChanged.emit(text, pos)
+        cfg = self.get_caption_config()
+        self.captionConfigChanged.emit(cfg)
 
     def _on_preset_selected(self, index: int):
         if 0 <= index < len(self.preset_keys):
@@ -288,7 +460,24 @@ class ControlSidebar(SingleDirectionScrollArea):
 
     def get_caption_position(self) -> str:
         """获取当前配文位置 ('bottom' 或 'top')"""
-        return "top" if self.rb_pos_top.isChecked() else "bottom"
+        return "top" if self.caption_pos_y_ratio < 0.3 else "bottom"
+
+    def get_caption_config(self) -> CaptionConfig:
+        """获取完整的表情包配文与变换配置对象"""
+        text = self.get_caption_text()
+        alpha_t = int(255 * (self.slider_text_opacity.value() / 100.0))
+        rgba_text = (self.text_color_rgb[0], self.text_color_rgb[1], self.text_color_rgb[2], alpha_t)
+        rgba_stroke = (self.stroke_color_rgb[0], self.stroke_color_rgb[1], self.stroke_color_rgb[2], alpha_t)
+
+        return CaptionConfig(
+            text=text,
+            pos_x_ratio=getattr(self, "caption_pos_x_ratio", 0.5),
+            pos_y_ratio=getattr(self, "caption_pos_y_ratio", 0.88),
+            rotation_deg=getattr(self, "caption_rotation", 0.0),
+            text_color=rgba_text,
+            stroke_color=rgba_stroke,
+            stroke_width=self.slider_stroke_width.value(),
+        )
 
     def get_export_preset(self) -> str:
         """获取当前选中的导出预设 key ('wechat', 'xiaohongshu', 'hd_gif', 'webp')"""
@@ -305,4 +494,10 @@ class ControlSidebar(SingleDirectionScrollArea):
         self.switch_crop.setEnabled(not is_processing)
         self.combo_presets.setEnabled(not is_processing)
         self.edit_caption.setEnabled(not is_processing)
+        self.slider_rotation.setEnabled(not is_processing)
+        self.btn_text_color.setEnabled(not is_processing)
+        self.btn_stroke_color.setEnabled(not is_processing)
+        self.slider_text_opacity.setEnabled(not is_processing)
+        self.slider_stroke_width.setEnabled(not is_processing)
+
 

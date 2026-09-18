@@ -15,6 +15,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from ..core import (
     GridConfig,
+    CaptionConfig,
     slice_image,
     compress_wechat_gif,
     export_gif,
@@ -76,6 +77,7 @@ class ExportWorker(QThread):
         base_name: str = "animation",
         caption_text: Optional[str] = None,
         caption_pos: str = "bottom",
+        caption_config: Optional[CaptionConfig] = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -87,6 +89,7 @@ class ExportWorker(QThread):
         self.base_name = base_name
         self.caption_text = caption_text
         self.caption_pos = caption_pos
+        self.caption_config = caption_config
 
     def run(self):
         try:
@@ -98,10 +101,13 @@ class ExportWorker(QThread):
 
             # 叠加表情包文字配文 (若指定)
             export_frames = list(self.frames)
-            if self.caption_text and self.caption_text.strip():
+            if self.caption_config and self.caption_config.text:
+                export_frames = apply_caption_to_frames(export_frames, self.caption_config)
+            elif self.caption_text and self.caption_text.strip():
                 export_frames = apply_caption_to_frames(
                     export_frames, self.caption_text.strip(), position=self.caption_pos
                 )
+
 
             # 构建帧间隔列表
             durations = [self.duration] * len(export_frames)

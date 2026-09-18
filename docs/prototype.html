@@ -392,37 +392,92 @@
       z-index: 10;
     }
 
-    /* 画布文字叠加图层 */
+    /* 画布文字叠加图层 (支持鼠标拖拽、任意旋转与样式定制) */
     .canvas-caption {
       position: absolute;
-      left: 0;
-      right: 0;
+      left: 50%;
+      top: 85%;
+      transform: translate(-50%, -50%) rotate(0deg);
       text-align: center;
       z-index: 20;
-      padding: 0 12px;
-      transition: all 0.2s;
+      padding: 6px 14px;
+      cursor: grab;
+      user-select: none;
+      white-space: nowrap;
+      border: 1px dashed transparent;
+      border-radius: 6px;
+      transition: border-color 0.15s, background 0.15s;
     }
 
-    .canvas-caption.pos-bottom {
-      bottom: 20px;
+    .canvas-caption:hover {
+      border-color: rgba(34, 211, 238, 0.7);
+      background: rgba(0, 0, 0, 0.35);
     }
 
-    .canvas-caption.pos-top {
-      top: 20px;
+    .canvas-caption:active {
+      cursor: grabbing;
+      border-color: var(--accent);
     }
 
     .caption-txt {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       color: #ffffff;
-      text-shadow:
-        -2px -2px 0 #000,
-         2px -2px 0 #000,
-        -2px  2px 0 #000,
-         2px  2px 0 #000,
-         0px  3px 6px rgba(0,0,0,0.8);
+      opacity: 1;
       letter-spacing: 1px;
+      display: inline-block;
+      pointer-events: none;
     }
+
+    /* 快捷九宫格与预设按钮小样式 */
+    .pos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      width: 84px;
+    }
+    .btn-pos-grid {
+      height: 22px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      color: var(--text-sub);
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-pos-grid:hover {
+      background: #404040;
+      color: #fff;
+    }
+    .btn-pos-grid.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: bold;
+    }
+
+    .style-presets-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-cap-preset {
+      background: #333;
+      border: 1px solid #484848;
+      color: #ddd;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-cap-preset:hover {
+      background: #3d3d3d;
+      color: #fff;
+      border-color: var(--accent);
+    }
+
 
     /* 播放控制条 (实机 1:1) */
     .player-strip {
@@ -981,24 +1036,86 @@
               </label>
             </div>
 
-            <!-- 卡片 3 (v3.1 规划扩展卡片): 表情包配文 -->
+            <!-- 卡片 3 (v3.2 进阶扩展): 表情包自由配文工作室 -->
             <div class="fluent-card highlight" id="cardV31Caption">
               <div class="card-heading">
-                <span>💬</span>
-                <span>表情包配文</span>
-                <span class="badge-v31">v3.1 提案</span>
+                <span>✍️</span>
+                <span>表情包自由配文</span>
+                <span class="badge-v31">自由拖拽+旋转</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted);">在下方打字，画布即可实时试看效果：</div>
+              
+              <!-- 文本输入与清空 -->
               <input type="text" id="inpCaption" value="这也太真实了吧！" placeholder="留空则不添加任何字样..." style="background: var(--input-bg); border: 1px solid var(--input-border); color: #fff; padding: 6px 10px; border-radius: 5px; font-size: 12px; outline: none;" oninput="onTypeCaption(this.value)">
-              <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-sub);">
-                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                  <input type="radio" name="capPos" checked onchange="setCapPos('bottom')"> 底部居中
-                </label>
-                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                  <input type="radio" name="capPos" onchange="setCapPos('top')"> 顶部横条
-                </label>
+
+              <!-- 旋转角度控制 -->
+              <div class="slider-block" style="margin-top: 2px;">
+                <div class="slider-header">
+                  <span>旋转角度: <span id="lblRotationVal" class="slider-val">0°</span></span>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn-cap-preset" onclick="setRotation(-15)">-15°</button>
+                    <button class="btn-cap-preset" onclick="setRotation(0)">0°</button>
+                    <button class="btn-cap-preset" onclick="setRotation(15)">15°</button>
+                    <button class="btn-cap-preset" onclick="setRotation(45)">45°</button>
+                  </div>
+                </div>
+                <input type="range" id="rngRotation" class="range-cyan" value="0" min="-180" max="180" oninput="onRotationInput(this.value)">
+              </div>
+
+              <!-- 颜色与透明度控制 -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--text-sub);">
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                    <span>文字颜色:</span>
+                    <input type="color" id="pickerTextColor" value="#ffffff" style="width: 24px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer;" onchange="updateCaptionStyles()">
+                  </div>
+                  <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>透明度:</span>
+                    <span id="lblTextOpacity">100%</span>
+                  </div>
+                  <input type="range" id="rngTextOpacity" class="range-cyan" value="100" min="10" max="100" oninput="updateCaptionStyles()">
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                    <span>边框描边:</span>
+                    <input type="color" id="pickerStrokeColor" value="#000000" style="width: 24px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer;" onchange="updateCaptionStyles()">
+                  </div>
+                  <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>粗细:</span>
+                    <span id="lblStrokeWidth">2px</span>
+                  </div>
+                  <input type="range" id="rngStrokeWidth" class="range-cyan" value="2" min="0" max="10" oninput="updateCaptionStyles()">
+                </div>
+              </div>
+
+              <!-- 九宫格对齐与位置提示 -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+                <div style="font-size: 11px; color: var(--text-sub);">
+                  <span>九宫格快捷归位:</span>
+                  <div style="font-size: 9px; color: var(--accent); margin-top: 2px;">(亦可在画布上鼠标直接拖动)</div>
+                </div>
+                <div class="pos-grid">
+                  <button class="btn-pos-grid" onclick="setPosGrid(20, 20)">↖</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(50, 18)">↑</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(80, 20)">↗</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(20, 50)">←</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(50, 50)">•</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(80, 50)">→</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(20, 85)">↙</button>
+                  <button class="btn-pos-grid active" onclick="setPosGrid(50, 85)">↓</button>
+                  <button class="btn-pos-grid" onclick="setPosGrid(80, 85)">↘</button>
+                </div>
+              </div>
+
+              <!-- 一键爆款风格快选 -->
+              <div style="font-size: 11px; color: var(--text-sub); margin-top: 2px;">一键风格模板:</div>
+              <div class="style-presets-row">
+                <button class="btn-cap-preset" onclick="applyStylePreset('classic')">🔥 经典黑白</button>
+                <button class="btn-cap-preset" onclick="applyStylePreset('yellow')">⚡ 荧光亮黄</button>
+                <button class="btn-cap-preset" onclick="applyStylePreset('danger')">🚨 高能爆红</button>
+                <button class="btn-cap-preset" onclick="applyStylePreset('watermark')">👻 水印透明</button>
               </div>
             </div>
+
 
             <!-- 卡片 4: 导出预设目标 (实机 1:1 + v3.1 扩展) -->
             <div class="fluent-card" id="cardV31Export">
@@ -1085,22 +1202,134 @@
   </div>
 
   <script>
+    let capX = 50;  // 百分比
+    let capY = 85;  // 百分比
+    let capRot = 0; // 度数
+
     // 实时文字打字联动
     function onTypeCaption(val) {
-      const cap = document.getElementById('txtCaption');
+      const cap = document.getElementById('canvasCaption');
       if (!val || val.trim() === '') {
         cap.style.display = 'none';
       } else {
-        cap.style.display = 'inline-block';
-        cap.innerText = val;
+        cap.style.display = 'block';
+        document.getElementById('txtCaption').innerText = val;
       }
     }
 
-    // 文字位置切换
-    function setCapPos(pos) {
-      const el = document.getElementById('canvasCaption');
-      el.className = pos === 'top' ? 'canvas-caption pos-top' : 'canvas-caption pos-bottom';
+    // 旋转控制
+    function onRotationInput(val) {
+      capRot = parseInt(val);
+      document.getElementById('lblRotationVal').innerText = capRot + '°';
+      applyTransform();
     }
+
+    function setRotation(deg) {
+      document.getElementById('rngRotation').value = deg;
+      onRotationInput(deg);
+    }
+
+    // 九宫格对齐
+    function setPosGrid(x, y) {
+      capX = x;
+      capY = y;
+      applyTransform();
+      document.querySelectorAll('.btn-pos-grid').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function applyTransform() {
+      const el = document.getElementById('canvasCaption');
+      el.style.left = capX + '%';
+      el.style.top = capY + '%';
+      el.style.transform = `translate(-50%, -50%) rotate(${capRot}deg)`;
+    }
+
+    // 样式更新：颜色、透明度与描边
+    function updateCaptionStyles() {
+      const textColor = document.getElementById('pickerTextColor').value;
+      const textOpacity = document.getElementById('rngTextOpacity').value / 100;
+      const strokeColor = document.getElementById('pickerStrokeColor').value;
+      const strokeWidth = parseInt(document.getElementById('rngStrokeWidth').value);
+
+      document.getElementById('lblTextOpacity').innerText = Math.round(textOpacity * 100) + '%';
+      document.getElementById('lblStrokeWidth').innerText = strokeWidth + 'px';
+
+      const txt = document.getElementById('txtCaption');
+      txt.style.color = textColor;
+      txt.style.opacity = textOpacity;
+
+      if (strokeWidth === 0) {
+        txt.style.textShadow = 'none';
+      } else {
+        // 生成多向文字阴影模拟描边
+        const shadows = [];
+        const r = strokeWidth;
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dy = -r; dy <= r; dy++) {
+            if (dx !== 0 || dy !== 0) {
+              shadows.push(`${dx}px ${dy}px 0 ${strokeColor}`);
+            }
+          }
+        }
+        shadows.push(`0px 3px 6px rgba(0,0,0,0.8)`);
+        txt.style.textShadow = shadows.join(', ');
+      }
+    }
+
+    // 一键风格模板
+    function applyStylePreset(type) {
+      if (type === 'classic') {
+        document.getElementById('pickerTextColor').value = '#ffffff';
+        document.getElementById('rngTextOpacity').value = 100;
+        document.getElementById('pickerStrokeColor').value = '#000000';
+        document.getElementById('rngStrokeWidth').value = 2;
+      } else if (type === 'yellow') {
+        document.getElementById('pickerTextColor').value = '#facc15';
+        document.getElementById('rngTextOpacity').value = 100;
+        document.getElementById('pickerStrokeColor').value = '#000000';
+        document.getElementById('rngStrokeWidth').value = 3;
+      } else if (type === 'danger') {
+        document.getElementById('pickerTextColor').value = '#ef4444';
+        document.getElementById('rngTextOpacity').value = 100;
+        document.getElementById('pickerStrokeColor').value = '#ffffff';
+        document.getElementById('rngStrokeWidth').value = 2;
+      } else if (type === 'watermark') {
+        document.getElementById('pickerTextColor').value = '#ffffff';
+        document.getElementById('rngTextOpacity').value = 35;
+        document.getElementById('pickerStrokeColor').value = '#000000';
+        document.getElementById('rngStrokeWidth').value = 1;
+      }
+      updateCaptionStyles();
+    }
+
+    // 画布鼠标直接抓取拖拽文字
+    (function initDrag() {
+      window.addEventListener('DOMContentLoaded', () => {
+        const el = document.getElementById('canvasCaption');
+        const canvas = document.getElementById('canvasView');
+        let isDragging = false;
+
+        el.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          capX = Math.max(5, Math.min(95, Math.round((x / rect.width) * 100)));
+          capY = Math.max(5, Math.min(95, Math.round((y / rect.height) * 100)));
+          applyTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          isDragging = false;
+        });
+      });
+    })();
 
     // 主题切换
     function toggleTheme() {
@@ -1110,6 +1339,7 @@
       body.setAttribute('data-theme', next);
       document.getElementById('txtTheme').innerText = next === 'dark' ? '☀️ 切换浅色模式' : '🌙 切换深色模式';
     }
+
 
     // 切换模拟载入素材
     let isLoaded = false;
