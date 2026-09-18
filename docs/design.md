@@ -421,7 +421,41 @@ GifCreater/
 
 ---
 
-## 十二、 变更与演进记录 (Changelog)
+## 十三、 导出管线帧时序与全格式一致性设计 (Frame Timing & Multi-Preset Consistency)
+
+### 1. 痛点分析与设计反思
+在旧版本实现中，微信表情包压缩逻辑错误预设了“表情包播放速度必须快”的偏见，在 `compress_wechat_gif` 中硬编码了 `120 if d > 160 else ...`，且在 `ExportWorker` 中强行抹平了尾帧停顿；同时，微信导出分支未接入 `generate_boomerang_sequence`。这导致用户在界面调试的帧间隔（如 350ms、500ms）及尾帧停顿在微信预设下完全失效，造成预览与产物脱节。
+
+### 2. 帧时序保真架构演进
+```text
+UI 输入 (duration, end_pause, boomerang)
+               │
+               ▼
+[ExportWorker.run 序列时序预处理]
+  ├─ 构建完整帧时序: durations = [duration] * N, 且 durations[-1] = end_pause
+  └─ 若 boomerang: generate_boomerang_sequence(frames, durations) 镜像扩展
+               │
+               ▼
+分发各格式导出适配器 (Preset Handlers)
+  ├─ wechat: compress_wechat_gif(frames, durations, ...)
+  ├─ xiaohongshu: export_gif(frames, durations, ...)
+  ├─ hd_gif: export_gif(frames, durations, ...)
+  └─ webp: export_webp(frames, durations, ...)
+               │
+               ▼
+[底质量化保护器 _quantize_duration]
+  └─ max(20, round(d / 10) * 10)  (100% 遵循 GIF89a 10ms 颗粒度标准)
+```
+
+### 3. GIF89a 规范量化与浏览器兼容
+- GIF89a 标准中图形控制扩展块（Graphics Control Extension）的 Delay Time 字段单位为 $1/100$ 秒（10ms）；
+- 许多现代浏览器和图像查看器对 $<20\text{ms}$ 的帧延时存在历史兼容缺陷（会自动拉长至 100ms 导致播放变慢）；
+- 导出引擎统一提供纯无头量化保护：`max(20, int(round(d / 10.0) * 10))`，既彻底保留用户的大延时配置（如 350ms $\to$ 350ms, 1500ms $\to$ 1500ms），又消除极限延时的播放器畸变。
+
+---
+
+## 十四、 变更与演进记录 (Changelog)
+- **2026-09-18 (v3.4.1 导出帧时序高保真与微信 Boomerang 统一)**：重构微信表情包导出与压缩管线，移除 120ms 强制截断与尾帧抹平，增加 GIF89a 标准 10ms 延时量化保护，全格式打通 Boomerang 镜像往复。
 - **2026-09-18 (v3.4 统一主题系统与高对比度设计令牌)**：新增 `ThemeManager` 与 `resources/themes/*.qss`，彻底解决深色背景黑色文字问题，实现深浅色无缝热重载。
 - **2026-09-18 (v3.3 自适应与滚动条避让)**：引入 `QSplitter` 弹性工作区与 `320px~480px` 侧边栏约束，增加 18px 滚动安全避让区，并将风格模板和罗盘归位升级为 `QGridLayout` 复合网格。
 - **2026-09-18 (v3.2 自由配文工作室)**：新增任意坐标拖拽图元 `DraggableCaptionItem`、-180°~180°双三次插值旋转、RGBA 双重着色与透明度滑块。

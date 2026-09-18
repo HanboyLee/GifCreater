@@ -50,15 +50,34 @@ def test_compress_wechat_gif_proportional_resize():
         assert im.size == (120, 240)
 
 
-def test_compress_wechat_gif_duration_normalization():
-    """验证微信模式下的帧间隔自适应优化"""
+def test_compress_wechat_gif_duration_fidelity():
+    """验证微信模式下帧间隔保真、尾帧停顿与 GIF89a 10ms 量化规范"""
     frames = [Image.new("RGB", (100, 100), (i * 30, 50, 50)) for i in range(4)]
+
+    # 1. 验证长延时与尾帧长停顿保真 (350ms, 1500ms 不再被强行截断为 120ms)
     durations = [350, 350, 350, 1500]
     gif_bytes = compress_wechat_gif(frames, durations)
-
     with Image.open(io.BytesIO(gif_bytes)) as im:
         frame_durations = [frame.info.get("duration", 0) for frame in ImageSequence.Iterator(im)]
-        assert all(d <= 160 for d in frame_durations)
+        assert frame_durations == [350, 350, 350, 1500]
+
+    # 2. 验证单一整数延时广播
+    gif_single = compress_wechat_gif(frames, 400)
+    with Image.open(io.BytesIO(gif_single)) as im:
+        frame_durations = [frame.info.get("duration", 0) for frame in ImageSequence.Iterator(im)]
+        assert frame_durations == [400, 400, 400, 400]
+
+    # 3. 验证默认延时 (None -> 100ms)
+    gif_default = compress_wechat_gif(frames, None)
+    with Image.open(io.BytesIO(gif_default)) as im:
+        frame_durations = [frame.info.get("duration", 0) for frame in ImageSequence.Iterator(im)]
+        assert frame_durations == [100, 100, 100, 100]
+
+    # 4. 验证 GIF89a 10ms 颗粒度量化与下限 20ms 保护
+    gif_quant = compress_wechat_gif(frames, [35, 12, 504, 506])
+    with Image.open(io.BytesIO(gif_quant)) as im:
+        frame_durations = [frame.info.get("duration", 0) for frame in ImageSequence.Iterator(im)]
+        assert frame_durations == [40, 20, 500, 510]
 
 
 def test_compress_wechat_gif_extreme_entropy_stress(heavy_animated_frames_20):

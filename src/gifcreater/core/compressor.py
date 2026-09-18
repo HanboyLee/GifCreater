@@ -71,15 +71,18 @@ def compress_wechat_gif(
 
     num_frames = len(resized_frames)
 
-    # 3. 帧延时归一化处理 (平抑表情包过长/过短停顿)
+    # 3. 帧延时量化保护 (遵循 GIF89a 10ms 颗粒度标准，保证 >= 20ms，四舍五入到 10ms 整数倍)
+    def _quantize_duration(d: int) -> int:
+        return max(20, int(round(d / 10.0) * 10))
+
     if durations is None:
-        norm_durs = [120] * num_frames
+        norm_durs = [100] * num_frames
     elif isinstance(durations, int):
-        norm_durs = [120 if durations > 160 else max(20, durations)] * num_frames
+        norm_durs = [_quantize_duration(durations)] * num_frames
     else:
-        norm_durs = [120 if d > 160 else max(20, d) for d in durations]
+        norm_durs = [_quantize_duration(d) for d in durations]
         if len(norm_durs) < num_frames:
-            norm_durs.extend([120] * (num_frames - len(norm_durs)))
+            norm_durs.extend([100] * (num_frames - len(norm_durs)))
         elif len(norm_durs) > num_frames:
             norm_durs = norm_durs[:num_frames]
 

@@ -28,6 +28,7 @@ from .compressor import (
     compress_wechat_gif,
 )
 from .exporter import (
+    generate_boomerang_sequence,
     export_gif,
     export_webp,
     save_to_disk,
@@ -53,6 +54,7 @@ __all__ = [
     "split_grid_image",
     "detect_bounds",
     "compress_wechat_gif",
+    "generate_boomerang_sequence",
     "export_gif",
     "export_webp",
     "save_to_disk",

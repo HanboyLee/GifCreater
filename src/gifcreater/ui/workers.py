@@ -18,6 +18,7 @@ from ..core import (
     CaptionConfig,
     slice_image,
     compress_wechat_gif,
+    generate_boomerang_sequence,
     export_gif,
     export_webp,
     save_to_disk,
@@ -120,13 +121,14 @@ class ExportWorker(QThread):
             if self.preset == "wechat":
                 self.stageChanged.emit("正在进行微信表情包自适应调色板试探压缩 (<=500KB, <=240px)...")
                 self.progressChanged.emit(30)
-                # 微信表情包推荐帧间隔与首尾优化
-                wc_durations = [120 if d > 160 else d for d in durations]
-                if self.boomerang or self.end_pause > 500:
-                    wc_durations[-1] = wc_durations[0]
+                # 若开启乒乓往复，展开序列
+                if self.boomerang:
+                    wc_frames, wc_durations = generate_boomerang_sequence(export_frames, durations)
+                else:
+                    wc_frames, wc_durations = list(export_frames), list(durations)
 
                 data = compress_wechat_gif(
-                    frames=export_frames,
+                    frames=wc_frames,
                     durations=wc_durations,
                     max_size_bytes=500 * 1024,
                     max_side=240,

@@ -81,8 +81,8 @@ GifCreater/
 * **准则**：纯 Python/C 原生计算，**严禁引入任何 GUI 模块**（如禁止直接或间接 `import PyQt6` 或 `import tkinter`）。
 * **职责**：
   * 多帧拼图切片与边缘探测算法 (`slicer.py`)；
-  * 微信表情包 ≤500KB 调色板自适应搜索与试探压缩 (`compressor.py`)；
-  * GIF / WebP 动图合成与帧延时编码 (`exporter.py`)；
+  * 微信表情包 ≤500KB 调色板自适应搜索与试探压缩 (`compressor.py`，100% 尊重配置帧间隔与尾帧停顿，严格遵循 GIF89a 10ms 颗粒度量化规范与多级衰减)；
+  * GIF / WebP 动图合成与帧延时编码 (`exporter.py`，全格式支持 Boomerang 往复镜像展开与时序保真编码)；
   * 表情包自由排版与文字渲染引擎 (`caption.py`，支持任意坐标比例、-180°~180°旋转、文本/描边 RGBA 双重着色与透明度、自适应描边与字体优雅回退)；
   * (v3.5+) 提示词结构化数据契约与 Agent 规范生成引擎 (`prompt_schema.py` / `agent_engine.py`)。
 
