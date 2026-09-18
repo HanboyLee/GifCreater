@@ -5,12 +5,30 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - 'README.md'
+      - 'README_zh.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.agent/**'
+      - 'docs/prototype.html'
+      - 'docs/ui_prototype.md'
     tags:
       - 'v*'
   pull_request:
     branches:
       - main
       - master
+    paths-ignore:
+      - 'README.md'
+      - 'README_zh.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.agent/**'
+      - 'docs/prototype.html'
+      - 'docs/ui_prototype.md'
+  workflow_dispatch:
+
 
 permissions:
   contents: write
