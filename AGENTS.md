@@ -103,7 +103,8 @@ AI 在完成任务交付或汇报阶段，**杜绝任何“假设已完成”的
 
 - **[01-architecture-boundaries.md](.agent/rules/01-architecture-boundaries.md)**：架构分层标准、核心算法 100% 无头解耦、根目录极简白名单、纯本地计算隐私底线。
 - **[02-vibe-coding-tdd-gate.md](.agent/rules/02-vibe-coding-tdd-gate.md)**：Vibe Coding 防作弊红线（严禁 `assert True` / 假单测 / 偷删功能）、90% 覆盖率与内存微型图像测试规范。
-- **[03-documentation-lifecycle.md](.agent/rules/03-documentation-lifecycle.md)**：文档更新三阶段触发机制（改动前 spec、改动中代码、改动后四件套强绑定原子提交）。
+- **[03-documentation-lifecycle.md](.agent/rules/03-documentation-lifecycle.md)**：文档更新四阶段闭环机制（改动前路线图锚定、改动中实现、改动后强绑定原子提交、大版本结项回写）。
 - **[04-domain-wechat-compression.md](.agent/rules/04-domain-wechat-compression.md)**：微信表情包三大物理红线（<=500KB、<=240px、透明保留）与五阶调色板自适应衰减收敛算法。
 - **[05-fluent-ui-ux.md](.agent/rules/05-fluent-ui-ux.md)**：Windows 11 Fluent 美学标准、深浅色高对比度、强制调用 `UIUX-PRO-MAX` 设计智能 Skill、`QThread` 异步非阻塞 60 FPS 调度、画布与胶卷交互守则。
+- **[06-commit-and-delivery-standards.md](.agent/rules/06-commit-and-delivery-standards.md)**：AI 代理提交标准与交付契约（Conventional Commits 规范、6 项 DoD 交付门禁、标准化交付报告模板、CI/CD 提交分流）。
 
