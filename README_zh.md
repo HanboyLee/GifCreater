@@ -126,7 +126,7 @@ $$\text{拖入多帧大图} \longrightarrow \text{智能吸附分割线} \longri
    ```
 3. 启动应用：
    ```bash
-   python gui.py
+   python main.py
    # 或在 Windows 上直接双击 run_gui.bat
    ```
 
@@ -135,4 +135,4 @@ $$\text{拖入多帧大图} \longrightarrow \text{智能吸附分割线} \longri
 ## 📄 开源许可证与开发文档
 
 - 本项目采用 [MIT License](LICENSE) 开源协议。
-- *开发者与贡献者*：架构与技术设计详见 [docs/](docs/)，AI 协作规范详见 [AGENTS.md](AGENTS.md)。
+- *开发者与贡献者*：架构全景详见 [ARCHITECTURE.md](ARCHITECTURE.md)，技术设计详见 [docs/](docs/)，演进路线详见 [产品路线图 (Roadmap)](docs/roadmap.md)，AI 协作规范详见 [AGENTS.md](AGENTS.md)。

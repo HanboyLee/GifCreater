@@ -1,22 +1,22 @@
-﻿@echo off
+@echo off
 chcp 65001 >nul
 title 16-Frame Splitter and GIF Creator
 cd /d "%~dp0"
 
 where python >nul 2>nul
 if %errorlevel% equ 0 (
-    python gif_tool.py --gui
+    python main.py
     goto end
 )
 
 where py >nul 2>nul
 if %errorlevel% equ 0 (
-    py -3 gif_tool.py --gui
+    py -3 main.py
     goto end
 )
 
 if exist "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" (
-    "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" gif_tool.py --gui
+    "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" main.py
     goto end
 )
 

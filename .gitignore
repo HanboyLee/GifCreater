@@ -5,9 +5,12 @@ __pycache__/
 
 # C extensions
 *.so
+*.pyd
 
 # Distribution / packaging
 build/
+!scripts/build/
+!scripts/build/**
 dist/
 downloads/
 eggs/
@@ -29,6 +32,8 @@ MANIFEST
 *.spec.bak
 *.exe
 *.zip
+*.pkg
+*.pyz
 
 # Local outputs & runtime files
 output/
@@ -38,6 +43,20 @@ tests/samples/
 tests/output/
 ChatGPT Image*
 *_frames/
+*.raw
+*.mp4
+*.mov
+*.avi
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+!resources/**
+
+# Agent metadata and scratchpads (keep out of repository)
+.agents/
 
 # Environments
 .env

@@ -39,7 +39,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m pytest tests/ --cov=gif_tool --cov-report=term-missing --cov-fail-under=90
+          python -m pytest tests/ --cov=src/gifcreater/core --cov=gif_tool --cov-report=term-missing --cov-fail-under=90
 
   # 阶段 2：自动化打包与 Release 部署
   build-and-release:

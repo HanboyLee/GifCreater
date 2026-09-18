@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""
+GifCreater 异步工作线程调度层 (Worker Threads)
+==============================================
+
+基于 QThread 封装计算密集型任务，彻底隔离主 UI 事件循环：
+- SliceWorker: 网格切片与去黑边异步处理
+- ExportWorker: 微信表情包自适应调色板试探压缩、GIF / WebP 导出
+"""
+
+from pathlib import Path
+from typing import List, Optional
+from PIL import Image
+from PyQt6.QtCore import QThread, pyqtSignal
+
+from ..core import (
+    GridConfig,
+    slice_image,
+    compress_wechat_gif,
+    export_gif,
+    export_webp,
+    save_to_disk,
+)
+from ..utils.paths import get_default_output_dirs
+
+
+class SliceWorker(QThread):
+    """
+    异步切片工作线程：在后台执行图像网格拆分与黑边吸附
+    """
+    progressChanged = pyqtSignal(int)          # 进度百分比 (0-100)
+    stageChanged = pyqtSignal(str)             # 阶段描述
+    sliceFinished = pyqtSignal(list, object)   # (List[Image.Image], GridConfig)
+    sliceFailed = pyqtSignal(str)              # 错误消息
+
+    def __init__(self, image: Image.Image, grid: GridConfig, smart_crop: bool = True, parent=None):
+        super().__init__(parent)
+        self.image = image
+        self.grid = grid
+        self.smart_crop = smart_crop
+
+    def run(self):
+        try:
+            self.stageChanged.emit("正在解析切片网格与边缘探测...")
+            self.progressChanged.emit(20)
+
+            # 调用无头算法引擎
+            self.stageChanged.emit("正在分割单帧图像...")
+            self.progressChanged.emit(50)
+            frames = slice_image(self.image, self.grid, smart_crop=self.smart_crop)
+
+            self.stageChanged.emit(f"切片完成，共生成 {len(frames)} 帧")
+            self.progressChanged.emit(100)
+            self.sliceFinished.emit(frames, self.grid)
+        except Exception as e:
+            self.sliceFailed.emit(str(e))
+
+
+class ExportWorker(QThread):
+    """
+    异步动图导出工作线程：执行自适应调色板探针计算与文件写出
+    """
+    progressChanged = pyqtSignal(int)
+    stageChanged = pyqtSignal(str)
+    exportFinished = pyqtSignal(str, int)      # (output_path, size_bytes)
+    exportFailed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        frames: List[Image.Image],
+        preset: str = "gif",
+        duration: int = 350,
+        end_pause: int = 1500,
+        boomerang: bool = False,
+        base_name: str = "animation",
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.frames = frames
+        self.preset = preset.lower()  # "gif", "wechat", "webp"
+        self.duration = duration
+        self.end_pause = end_pause
+        self.boomerang = boomerang
+        self.base_name = base_name
+
+    def run(self):
+        try:
+            if not self.frames:
+                raise ValueError("没有可导出的有效帧")
+
+            self.stageChanged.emit("准备生成动图数据...")
+            self.progressChanged.emit(10)
+
+            # 构建帧间隔列表
+            durations = [self.duration] * len(self.frames)
+            if self.end_pause > 0 and len(durations) > 0:
+                durations[-1] = self.end_pause
+
+            # 获取输出目录
+            gifs_dir, _ = get_default_output_dirs()
+
+            if self.preset == "wechat":
+                self.stageChanged.emit("正在进行微信表情包自适应调色板试探压缩 (<=500KB, <=240px)...")
+                self.progressChanged.emit(30)
+                # 执行自适应压缩
+                data = compress_wechat_gif(
+                    frames=self.frames,
+                    durations=durations,
+                    max_size_bytes=500 * 1024,
+                    max_side=240,
+                )
+                self.progressChanged.emit(85)
+                filename = f"{self.base_name}_wechat.gif"
+                target_path = gifs_dir / filename
+                saved_path = save_to_disk(data, target_path)
+
+            elif self.preset == "webp":
+                self.stageChanged.emit("正在编码高保真 WebP 动图...")
+                self.progressChanged.emit(40)
+                data = export_webp(
+                    frames=self.frames,
+                    durations=durations,
+                    loop=0,
+                    boomerang=self.boomerang,
+                )
+                self.progressChanged.emit(85)
+                filename = f"{self.base_name}.webp"
+                target_path = gifs_dir / filename
+                saved_path = save_to_disk(data, target_path)
+
+            else:  # 原画高清 GIF
+                self.stageChanged.emit("正在生成高清原画 GIF...")
+                self.progressChanged.emit(40)
+                data = export_gif(
+                    frames=self.frames,
+                    durations=durations,
+                    loop=0,
+                    boomerang=self.boomerang,
+                )
+                self.progressChanged.emit(85)
+                filename = f"{self.base_name}_hd.gif"
+                target_path = gifs_dir / filename
+                saved_path = save_to_disk(data, target_path)
+
+            size_bytes = len(data)
+            self.stageChanged.emit(f"导出成功！体积: {size_bytes / 1024:.1f} KB")
+            self.progressChanged.emit(100)
+            self.exportFinished.emit(str(saved_path), size_bytes)
+
+        except Exception as e:
+            self.exportFailed.emit(str(e))

@@ -128,7 +128,7 @@ Requires Python 3.10+ (tested on Python 3.11 & 3.13):
    ```
 3. Launch the studio:
    ```bash
-   python gui.py
+   python main.py
    # Or double-click run_gui.bat on Windows
    ```
 
@@ -137,4 +137,4 @@ Requires Python 3.10+ (tested on Python 3.11 & 3.13):
 ## 📄 License & Contributing
 
 - Distributed under the [MIT License](LICENSE).
-- *Developers & Contributors*: Please refer to [docs/](docs/) and [AGENTS.md](AGENTS.md) for architectural documentation and quality guidelines.
+- *Developers & Contributors*: Please refer to [ARCHITECTURE.md](ARCHITECTURE.md), [docs/](docs/), [Product Roadmap](docs/roadmap.md), and [AGENTS.md](AGENTS.md) for architectural blueprints and quality guidelines.
