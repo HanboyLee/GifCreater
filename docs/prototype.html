@@ -459,23 +459,29 @@
     }
 
     .style-presets-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
-      flex-wrap: wrap;
     }
     .btn-cap-preset {
       background: #333;
       border: 1px solid #484848;
       color: #ddd;
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 4px;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 5px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
     }
     .btn-cap-preset:hover {
       background: #3d3d3d;
       color: #fff;
       border-color: var(--accent);
+      transform: translateY(-1px);
     }
 
 
@@ -582,15 +588,17 @@
       color: #fff;
     }
 
-    /* 3. 右侧控制面板 (固定 310px 抽屉，实机 1:1 卡片样式) */
+    /* 3. 右侧控制面板 (自适应弹性抽屉 340px~420px，实机 1:1 卡片样式，预留 18px 滚动安全避让区) */
     .right-controls {
-      width: 310px;
+      width: clamp(340px, 24vw, 420px);
+      min-width: 330px;
       background: transparent;
       display: flex;
       flex-direction: column;
       gap: 10px;
       overflow-y: auto;
-      padding-right: 2px;
+      overflow-x: hidden;
+      padding-right: 18px;
     }
 
     .fluent-card {
@@ -1196,6 +1204,11 @@
           <td><b>新功能融入方式</b></td>
           <td>原第 3 张卡片为“导出预设目标”，其上方空间完全可自然容纳“表情包配文”卡片。</td>
           <td><b>优雅融入</b>：在动画节奏与导出预设之间，平滑插入「💬 表情包配文」卡片。</td>
+        </tr>
+        <tr>
+          <td><b>右侧自适应与滚动条避让</b></td>
+          <td>实机原先固定 310px 导致按钮挤出且滚动条遮挡滑轨与按钮边缘。</td>
+          <td><b>v3.3 弹性自适应</b>：侧边栏改为 <code>clamp(340px, 24vw, 420px)</code> 弹性区间，预留 18px 滚动安全边距，模板按钮升级为 2×2 网格，彻底消除遮挡。</td>
         </tr>
       </tbody>
     </table>

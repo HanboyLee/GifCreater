@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -103,16 +104,32 @@ class MainWindow(MSFluentWindow):
 
         self.main_layout.addLayout(top_bar)
 
-        # 2. 中间工作区分割布局 (左侧：画布+胶卷，右侧：控制面板)
-        work_layout = QHBoxLayout()
-        work_layout.setSpacing(12)
+        # 2. 中间工作区分割布局 (左侧：画布+胶卷，右侧：控制面板，采用可拖拽 QSplitter)
+        self.work_splitter = QSplitter(Qt.Orientation.Horizontal, self.central_widget)
+        self.work_splitter.setHandleWidth(8)
+        self.work_splitter.setChildrenCollapsible(False)
+        self.work_splitter.setStyleSheet(
+            """
+            QSplitter::handle {
+                background-color: #272727;
+                border: 1px solid #383838;
+                border-radius: 3px;
+                margin: 0px 2px;
+            }
+            QSplitter::handle:hover {
+                background-color: #00bcd4;
+            }
+            """
+        )
 
         # 左侧区域
-        left_layout = QVBoxLayout()
+        left_widget = QWidget(self.work_splitter)
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(8)
 
         # 交互画布与原地播放器
-        self.canvas = InteractiveCanvas(self)
+        self.canvas = InteractiveCanvas(left_widget)
         self.canvas.gridModified.connect(self._on_canvas_grid_modified)
         self.canvas.frameChanged.connect(self._on_player_frame_changed)
         left_layout.addWidget(self.canvas, 1)
@@ -130,14 +147,14 @@ class MainWindow(MSFluentWindow):
         left_layout.addLayout(player_bar)
 
         # 底部卡片胶卷
-        self.filmstrip = FilmstripWidget(self)
+        self.filmstrip = FilmstripWidget(left_widget)
         self.filmstrip.activeFramesChanged.connect(self._on_active_frames_changed)
         left_layout.addWidget(self.filmstrip)
 
-        work_layout.addLayout(left_layout, 1)
+        self.work_splitter.addWidget(left_widget)
 
         # 右侧控制面板
-        self.sidebar = ControlSidebar(self)
+        self.sidebar = ControlSidebar(self.work_splitter)
         self.sidebar.gridParamChanged.connect(self._on_grid_param_changed)
         self.sidebar.timingChanged.connect(self._on_timing_changed)
         self.sidebar.captionChanged.connect(self.canvas.set_caption)
@@ -145,11 +162,14 @@ class MainWindow(MSFluentWindow):
         self.canvas.captionPositionMoved.connect(self.sidebar.update_caption_position_ratio)
         self.sidebar.startProcessRequested.connect(self._start_slice_and_export)
         self.sidebar.openOutputRequested.connect(self._open_output_dir)
-        work_layout.addWidget(self.sidebar)
+        self.work_splitter.addWidget(self.sidebar)
 
+        # 分配伸缩权重与初始尺寸 (左侧画布为主拉伸 3，右侧面板 1)
+        self.work_splitter.setStretchFactor(0, 3)
+        self.work_splitter.setStretchFactor(1, 1)
+        self.work_splitter.setSizes([840, 360])
 
-
-        self.main_layout.addLayout(work_layout, 1)
+        self.main_layout.addWidget(self.work_splitter, 1)
 
         # 3. 底部状态栏
         status_bar = QHBoxLayout()

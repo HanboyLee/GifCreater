@@ -94,7 +94,14 @@ def test_filmstrip_widget(qapp):
 
 def test_control_sidebar(qapp):
     """测试现代参数控制侧边栏与配文变换控件"""
+    from PyQt6.QtCore import Qt
+
     sidebar = ControlSidebar()
+
+    # 验证自适应尺寸限制与横向滚动条策略
+    assert sidebar.minimumWidth() == 320
+    assert sidebar.maximumWidth() == 480
+    assert sidebar.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
 
     # 1. 默认预设 (微信表情包)
     assert sidebar.get_export_preset() == "wechat"
@@ -177,6 +184,12 @@ def test_main_window_headless(qapp, tmp_path):
     """测试主窗口生命周期与素材加载"""
     win = MainWindow()
     assert win.windowTitle().startswith("🎞️ GifCreater")
+
+    # 验证工作区 QSplitter 自适应
+    assert win.work_splitter is not None
+    assert win.work_splitter.count() == 2
+    assert win.work_splitter.widget(1) == win.sidebar
+    assert win.work_splitter.sizes()[1] > 0
 
     # 创建测试图并载入
     img = create_dummy_grid_image(120, 120, rows=2, cols=2)

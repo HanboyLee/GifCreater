@@ -16,7 +16,9 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QColorDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -53,8 +55,10 @@ class ControlSidebar(SingleDirectionScrollArea):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedWidth(310)
+        self.setMinimumWidth(320)
+        self.setMaximumWidth(480)
         self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # 配文与变换状态
         self.caption_pos_x_ratio: float = 0.50
@@ -113,7 +117,7 @@ class ControlSidebar(SingleDirectionScrollArea):
         container = QWidget()
         container.setStyleSheet("background: transparent;")
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(12, 12, 18, 12)
         layout.setSpacing(12)
         self.setWidget(container)
 
@@ -177,10 +181,12 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         # 常用角度快捷按钮
         rot_quick_box = QHBoxLayout()
+        rot_quick_box.setSpacing(6)
         for deg in [-15, 0, 15, 45]:
             btn_deg = PushButton(f"{deg:+}°" if deg != 0 else "0°")
-            btn_deg.setFixedHeight(22)
-            btn_deg.setStyleSheet("font-size: 10px; padding: 2px 4px;")
+            btn_deg.setFixedHeight(24)
+            btn_deg.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            btn_deg.setStyleSheet("font-size: 11px; padding: 2px 4px;")
             btn_deg.clicked.connect(lambda _, d=deg: self._set_rotation_angle(d))
             rot_quick_box.addWidget(btn_deg)
         layout_caption.addLayout(rot_quick_box)
@@ -193,8 +199,11 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         # 颜色与透明度选择区
         style_grid = QHBoxLayout()
+        style_grid.setSpacing(8)
+
         # 文字颜色与透明度
         col_text_box = QVBoxLayout()
+        col_text_box.setSpacing(4)
         self.btn_text_color = PushButton("文字颜色")
         self.btn_text_color.setFixedHeight(26)
         self.btn_text_color.clicked.connect(self._pick_text_color)
@@ -211,6 +220,7 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         # 描边颜色与粗细
         col_stroke_box = QVBoxLayout()
+        col_stroke_box.setSpacing(4)
         self.btn_stroke_color = PushButton("描边颜色")
         self.btn_stroke_color.setFixedHeight(26)
         self.btn_stroke_color.clicked.connect(self._pick_stroke_color)
@@ -227,48 +237,61 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         layout_caption.addLayout(style_grid)
 
-        # 九宫格快捷归位
+        # 九宫格快捷归位 (2x3 罗盘网格)
         layout_caption.addWidget(BodyLabel("九宫格快捷归位 (亦可直接在画布拖拽):"))
-        grid_pos_layout = QHBoxLayout()
+        grid_pos_layout = QGridLayout()
+        grid_pos_layout.setSpacing(6)
         pos_buttons = [
-            ("↖ 顶左", 0.20, 0.15),
-            ("↑ 顶中", 0.50, 0.12),
-            ("↗ 顶右", 0.80, 0.15),
-            ("• 正中", 0.50, 0.50),
-            ("↓ 底中", 0.50, 0.88),
-            ("↘ 底右", 0.80, 0.88),
+            ("↖ 顶左", 0.20, 0.15, 0, 0),
+            ("↑ 顶中", 0.50, 0.12, 0, 1),
+            ("↗ 顶右", 0.80, 0.15, 0, 2),
+            ("• 正中", 0.50, 0.50, 1, 0),
+            ("↓ 底中", 0.50, 0.88, 1, 1),
+            ("↘ 底右", 0.80, 0.88, 1, 2),
         ]
-        for name, rx, ry in pos_buttons:
+        for name, rx, ry, r, c in pos_buttons:
             b = PushButton(name)
-            b.setFixedHeight(22)
-            b.setStyleSheet("font-size: 10px; padding: 2px 2px;")
+            b.setFixedHeight(26)
+            b.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            b.setStyleSheet("font-size: 11px; padding: 2px 2px;")
             b.clicked.connect(lambda _, x=rx, y=ry: self._set_position_ratio(x, y))
-            grid_pos_layout.addWidget(b)
+            grid_pos_layout.addWidget(b, r, c)
         layout_caption.addLayout(grid_pos_layout)
 
-        # 一键爆款风格模板
+        # 一键爆款风格模板 (2x2 网格)
         layout_caption.addWidget(BodyLabel("一键风格模板:"))
-        template_box = QHBoxLayout()
+        template_grid = QGridLayout()
+        template_grid.setSpacing(6)
+
         tpl_btn_classic = PushButton("🔥 经典黑白")
-        tpl_btn_classic.setFixedHeight(24)
+        tpl_btn_classic.setFixedHeight(28)
+        tpl_btn_classic.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tpl_btn_classic.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_classic.clicked.connect(lambda: self._apply_style_template("classic"))
-        template_box.addWidget(tpl_btn_classic)
+        template_grid.addWidget(tpl_btn_classic, 0, 0)
 
         tpl_btn_yellow = PushButton("⚡ 荧光亮黄")
-        tpl_btn_yellow.setFixedHeight(24)
+        tpl_btn_yellow.setFixedHeight(28)
+        tpl_btn_yellow.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tpl_btn_yellow.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_yellow.clicked.connect(lambda: self._apply_style_template("yellow"))
-        template_box.addWidget(tpl_btn_yellow)
+        template_grid.addWidget(tpl_btn_yellow, 0, 1)
 
         tpl_btn_danger = PushButton("🚨 高能爆红")
-        tpl_btn_danger.setFixedHeight(24)
+        tpl_btn_danger.setFixedHeight(28)
+        tpl_btn_danger.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tpl_btn_danger.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_danger.clicked.connect(lambda: self._apply_style_template("danger"))
-        template_box.addWidget(tpl_btn_danger)
+        template_grid.addWidget(tpl_btn_danger, 1, 0)
 
         tpl_btn_wm = PushButton("👻 半透水印")
-        tpl_btn_wm.setFixedHeight(24)
+        tpl_btn_wm.setFixedHeight(28)
+        tpl_btn_wm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        tpl_btn_wm.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_wm.clicked.connect(lambda: self._apply_style_template("watermark"))
-        template_box.addWidget(tpl_btn_wm)
-        layout_caption.addLayout(template_box)
+        template_grid.addWidget(tpl_btn_wm, 1, 1)
+
+        layout_caption.addLayout(template_grid)
 
         layout.addWidget(card_caption)
 
@@ -339,10 +362,14 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         # ---------------- 行动按钮区 ----------------
         self.btn_process = PrimaryPushButton("🚀 一键拆解并合成动图")
+        self.btn_process.setFixedHeight(38)
+        self.btn_process.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.btn_process.clicked.connect(self.startProcessRequested.emit)
         layout.addWidget(self.btn_process)
 
         self.btn_open_output = PushButton("📂 打开成品归档目录")
+        self.btn_open_output.setFixedHeight(32)
+        self.btn_open_output.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.btn_open_output.clicked.connect(self.openOutputRequested.emit)
         layout.addWidget(self.btn_open_output)
 
