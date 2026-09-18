@@ -191,3 +191,18 @@ def test_main_window_headless(qapp, tmp_path):
     assert win.current_pil_image is not None
     assert win.current_grid is not None
     assert win.current_grid.rows == 4  # 侧边栏默认 4 行
+
+    # 验证智能吸附与几何均匀等分按钮交互
+    assert win.sidebar.btn_auto_align is not None
+    assert win.sidebar.btn_reset_grid is not None
+
+    # 触发智能吸附对齐
+    win.sidebar.btn_auto_align.click()
+    assert win.current_grid is not None
+    assert len(win.current_grid.col_lines) == 3
+
+    # 触发几何均匀等分
+    win.sidebar.btn_reset_grid.click()
+    assert win.current_grid is not None
+    assert win.current_grid.col_lines == [30, 60, 90]
+

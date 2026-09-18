@@ -49,6 +49,8 @@ class ControlSidebar(SingleDirectionScrollArea):
     右侧现代参数控制面板 (基于 Fluent Design 与 UIUX-PRO-MAX 规范)
     """
     gridParamChanged = pyqtSignal(int, int, bool)   # (rows, cols, smart_crop)
+    realignRequested = pyqtSignal()                 # 请求智能波谷吸附对齐
+    resetGridRequested = pyqtSignal()               # 请求几何均匀等分
     timingChanged = pyqtSignal(int, int, bool)      # (duration_ms, end_pause_ms, boomerang)
     captionChanged = pyqtSignal(str, str)           # (caption_text, caption_pos)
     captionConfigChanged = pyqtSignal(object)       # 发射 CaptionConfig 对象
@@ -114,6 +116,19 @@ class ControlSidebar(SingleDirectionScrollArea):
         self.switch_crop.checkedChanged.connect(self._on_grid_changed)
         crop_box.addWidget(self.switch_crop)
         layout_grid.addLayout(crop_box)
+
+        # 智能吸附与均匀等分快捷按钮组
+        btn_grid_actions = QHBoxLayout()
+        self.btn_auto_align = PushButton("⚡ 智能吸附参考线")
+        self.btn_auto_align.setToolTip("基于投影波谷中位线自动识别分镜缝隙并居中吸附")
+        self.btn_auto_align.clicked.connect(self.realignRequested.emit)
+        btn_grid_actions.addWidget(self.btn_auto_align)
+
+        self.btn_reset_grid = PushButton("↺ 均匀等分")
+        self.btn_reset_grid.setToolTip("恢复几何均匀等分网格参考线")
+        self.btn_reset_grid.clicked.connect(self.resetGridRequested.emit)
+        btn_grid_actions.addWidget(self.btn_reset_grid)
+        layout_grid.addLayout(btn_grid_actions)
 
         layout.addWidget(card_grid)
 

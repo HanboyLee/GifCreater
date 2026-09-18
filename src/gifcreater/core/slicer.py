@@ -118,14 +118,20 @@ def calculate_default_grid(
     *,
     image_w: Optional[int] = None,
     image_h: Optional[int] = None,
+    img: Optional[Image.Image] = None,
+    auto_snap: bool = False,
 ) -> GridConfig:
     """
-    根据图像宽高与行列数均匀初始化分割线坐标。
+    根据图像宽高与行列数初始化分割线坐标。
     支持多态入参名 (width/height 或 image_w/image_h)。
-    若提供 bounds (left, top, right, bottom)，则在 bounds 内部区域等分。
+    - 若 auto_snap=True 且传入 img，则调用投影波谷中位线算法自动吸附分镜缝隙；
+    - 否则采用标准几何等分（若提供 bounds 则在 bounds 内部等分）。
     """
-    w = image_w if image_w is not None else (width if width is not None else 0)
-    h = image_h if image_h is not None else (height if height is not None else 0)
+    if img is not None:
+        w, h = img.size
+    else:
+        w = image_w if image_w is not None else (width if width is not None else 0)
+        h = image_h if image_h is not None else (height if height is not None else 0)
 
     rows = max(1, rows)
     cols = max(1, cols)
@@ -133,7 +139,10 @@ def calculate_default_grid(
     if w <= 0 or h <= 0:
         return GridConfig(rows=rows, cols=cols, row_lines=[], col_lines=[], crop_bounds=bounds)
 
-    if bounds is not None:
+    if auto_snap and img is not None:
+        v_lines = _detect_single_axis(img, orientation="v", n_grid=cols, bounds=bounds)
+        h_lines = _detect_single_axis(img, orientation="h", n_grid=rows, bounds=bounds)
+    elif bounds is not None:
         left, top, right, bottom = bounds
         bw = max(0, right - left)
         bh = max(0, bottom - top)
@@ -160,12 +169,22 @@ def _detect_single_axis(
     n_grid: int = 4,
     bounds: Optional[Tuple[int, int, int, int]] = None,
 ) -> List[int]:
-    """单轴滑窗特征方差与阶跃差分打分算法"""
+    """
+    单轴特征线与缝隙波谷中位线探测算法 (Projection Profile Valley Detection)
+    - 支持 RGB、RGBA 及单通道灰度图的原生探测
+    - 计算单轴投影能量/方差剖面，提取连续低能量波谷带
+    - 自动定位缝隙带的物理中位线 (Centerline)，彻底消除边缘吸附偏差
+    """
     w, h = im.size
     if bounds:
         min_x, min_y, max_x, max_y = bounds
     else:
         min_x, min_y, max_x, max_y = 0, 0, w, h
+
+    min_x = max(0, min(w, min_x))
+    max_x = max(min_x, min(w, max_x))
+    min_y = max(0, min(h, min_y))
+    max_y = max(min_y, min(h, max_y))
 
     dim_start = min_x if orientation == "v" else min_y
     dim_end = max_x if orientation == "v" else max_y
@@ -179,41 +198,39 @@ def _detect_single_axis(
     if n_divs <= 0 or dim_len <= 0 or other_len <= 0:
         return []
 
-    sample_img = im.convert("RGB")
-    step = max(1, other_len // 60)
+    is_rgba = (im.mode == "RGBA")
+    sample_img = im if is_rgba else im.convert("RGB")
+    px = sample_img.load()
 
-    line_vars = []
-    line_means = []
+    step = max(1, other_len // 120)
+    sample_coords = list(range(other_start, other_end, step))
+    n_samples = len(sample_coords)
+    if n_samples == 0:
+        return []
+
+    # 1. 沿主轴计算每条采样切线的能量值 (方差 + 透明度)
+    energies = []
     for p in range(dim_start, dim_end):
         if orientation == "v":
-            samples = [sample_img.getpixel((p, y)) for y in range(other_start, other_end, step)]
+            pts = [px[p, y] for y in sample_coords]
         else:
-            samples = [sample_img.getpixel((x, p)) for x in range(other_start, other_end, step)]
+            pts = [px[x, p] for x in sample_coords]
 
-        grays = [(r + g + b) / 3.0 for r, g, b in samples]
-        m = sum(grays) / len(grays)
-        v = sum((g - m) ** 2 for g in grays) / len(grays)
-        line_vars.append(v)
-        line_means.append(m)
+        if is_rgba:
+            transparent_count = sum(1 for pt in pts if pt[3] < 64)
+            trans_ratio = transparent_count / float(n_samples)
+            if trans_ratio > 0.4:
+                e = (1.0 - trans_ratio) * 10.0
+                energies.append(e)
+                continue
 
-    line_diffs = [0.0]
-    for idx in range(1, dim_len):
-        p_curr = dim_start + idx
-        p_prev = p_curr - 1
-        if orientation == "v":
-            diff = sum(
-                abs(sample_img.getpixel((p_curr, y))[0] - sample_img.getpixel((p_prev, y))[0])
-                for y in range(other_start, other_end, step)
-            ) / max(1, (other_end - other_start) // step)
-        else:
-            diff = sum(
-                abs(sample_img.getpixel((x, p_curr))[0] - sample_img.getpixel((x, p_prev))[0])
-                for x in range(other_start, other_end, step)
-            ) / max(1, (other_end - other_start) // step)
-        line_diffs.append(diff)
+        grays = [(pt[0] * 299 + pt[1] * 587 + pt[2] * 114) / 1000.0 for pt in pts]
+        mean_g = sum(grays) / float(n_samples)
+        var_g = sum((g - mean_g) ** 2 for g in grays) / float(n_samples)
+        energies.append(var_g)
 
     cell_len = dim_len / float(n_grid)
-    search_w = int(cell_len * 0.35)
+    search_w = max(3, int(cell_len * 0.28))
 
     dividers = []
     for k in range(n_divs):
@@ -221,25 +238,49 @@ def _detect_single_axis(
         start_idx = max(0, nom_offset - search_w)
         end_idx = min(dim_len - 1, nom_offset + search_w)
 
-        best_p = dim_start + nom_offset
-        best_score = -1.0
+        if start_idx >= end_idx:
+            dividers.append(dim_start + nom_offset)
+            continue
 
-        for idx in range(start_idx, end_idx + 1):
-            p = dim_start + idx
-            v = line_vars[idx]
-            m = line_means[idx]
-            diff = line_diffs[idx]
+        window_energies = energies[start_idx : end_idx + 1]
+        min_e = min(window_energies)
 
-            score = diff * 2.0
-            if v < 120:
-                score += (120 - v) * 3.0
-                if m < 85 or m > 180:
-                    score += 250.0
+        # 动态波谷阈值：容许一定范围内的低能量平坦带
+        valley_threshold = max(min_e * 1.35 + 15.0, min_e + 25.0)
 
-            if score > best_score:
-                best_score = score
-                best_p = p
+        # 寻找波谷点
+        valley_indices = [
+            i for i, e in enumerate(window_energies) if e <= valley_threshold
+        ]
 
+        if not valley_indices:
+            dividers.append(dim_start + nom_offset)
+            continue
+
+        # 将波谷点划分为连续区间
+        segments = []
+        cur_seg = [valley_indices[0]]
+        for idx in valley_indices[1:]:
+            if idx == cur_seg[-1] + 1:
+                cur_seg.append(idx)
+            else:
+                segments.append(cur_seg)
+                cur_seg = [idx]
+        segments.append(cur_seg)
+
+        # 选择最靠近理论等分点 nom_offset 的连续波谷区间
+        target_local_idx = nom_offset - start_idx
+        best_seg = min(
+            segments,
+            key=lambda seg: abs((seg[0] + seg[-1]) / 2.0 - target_local_idx),
+        )
+
+        # 取波谷区间物理中位线 (Centerline)
+        gutter_center_local = int(round((best_seg[0] + best_seg[-1]) / 2.0))
+        best_p = dim_start + start_idx + gutter_center_local
+
+        # 边界安全性检查
+        best_p = max(dim_start + 1, min(dim_end - 1, best_p))
         dividers.append(best_p)
 
     return dividers

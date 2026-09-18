@@ -157,6 +157,8 @@ class MainWindow(MSFluentWindow):
         # 右侧控制面板
         self.sidebar = ControlSidebar(self.work_splitter)
         self.sidebar.gridParamChanged.connect(self._on_grid_param_changed)
+        self.sidebar.realignRequested.connect(self._realign_grid)
+        self.sidebar.resetGridRequested.connect(self._reset_grid_uniform)
         self.sidebar.timingChanged.connect(self._on_timing_changed)
         self.sidebar.captionChanged.connect(self.canvas.set_caption)
         self.sidebar.captionConfigChanged.connect(self.canvas.set_caption_config)
@@ -230,7 +232,7 @@ class MainWindow(MSFluentWindow):
             self.label_filepath.setText(f"📄 素材: {file_path.name} ({pil_img.width} × {pil_img.height} px)")
             self.label_status.setText(f"已载入素材: {file_path.name}")
 
-            # 初始化默认网格配置
+            # 初始化默认网格配置 (若开启智能裁剪则自动执行投影波谷吸附)
             rows = self.sidebar.spin_rows.value()
             cols = self.sidebar.spin_cols.value()
             smart_crop = self.sidebar.switch_crop.isChecked()
@@ -239,7 +241,15 @@ class MainWindow(MSFluentWindow):
             if smart_crop:
                 bounds = detect_bounds(pil_img)
 
-            self.current_grid = calculate_default_grid(pil_img.width, pil_img.height, rows, cols, bounds=bounds)
+            self.current_grid = calculate_default_grid(
+                pil_img.width,
+                pil_img.height,
+                rows,
+                cols,
+                bounds=bounds,
+                img=pil_img,
+                auto_snap=smart_crop,
+            )
             self.canvas.set_source_image(pil_img, self.current_grid)
             self.filmstrip.clear()
             self.btn_play_pause.setText("播放")
@@ -257,8 +267,55 @@ class MainWindow(MSFluentWindow):
         bounds = None
         if smart_crop:
             bounds = detect_bounds(self.current_pil_image)
-        self.current_grid = calculate_default_grid(self.current_pil_image.width, self.current_pil_image.height, rows, cols, bounds=bounds)
+        self.current_grid = calculate_default_grid(
+            self.current_pil_image.width,
+            self.current_pil_image.height,
+            rows,
+            cols,
+            bounds=bounds,
+            img=self.current_pil_image,
+            auto_snap=smart_crop,
+        )
         self.canvas.update_grid(self.current_grid)
+
+    def _realign_grid(self):
+        """用户主动请求智能波谷居中吸附对齐"""
+        if not self.current_pil_image:
+            InfoBar.warning("未载入素材", "请先载入多格图像素材", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
+            return
+        rows = self.sidebar.spin_rows.value()
+        cols = self.sidebar.spin_cols.value()
+        bounds = detect_bounds(self.current_pil_image)
+        self.current_grid = calculate_default_grid(
+            self.current_pil_image.width,
+            self.current_pil_image.height,
+            rows,
+            cols,
+            bounds=bounds,
+            img=self.current_pil_image,
+            auto_snap=True,
+        )
+        self.canvas.update_grid(self.current_grid)
+        self.label_status.setText("已智能吸附分镜缝隙中位线")
+        InfoBar.success("智能吸附对齐完成", "已自动识别分镜留白缝隙并居中定位", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
+
+    def _reset_grid_uniform(self):
+        """用户请求恢复纯几何均匀等分"""
+        if not self.current_pil_image:
+            return
+        rows = self.sidebar.spin_rows.value()
+        cols = self.sidebar.spin_cols.value()
+        self.current_grid = calculate_default_grid(
+            self.current_pil_image.width,
+            self.current_pil_image.height,
+            rows,
+            cols,
+            bounds=None,
+            auto_snap=False,
+        )
+        self.canvas.update_grid(self.current_grid)
+        self.label_status.setText("已恢复几何均匀等分")
+        InfoBar.info("已重置网格", "已恢复为纯几何等距离均匀划分", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
 
     def _on_canvas_grid_modified(self, new_grid: GridConfig):
         self.current_grid = new_grid

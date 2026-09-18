@@ -215,3 +215,55 @@ def test_get_aspect_ratio_info():
     assert ":1" in r_f1
     r_f2, _ = get_aspect_ratio_info(39, 137)
     assert "1:" in r_f2
+
+
+def test_detect_dividers_gutter_center_snapping():
+    """验证宽缝隙 (Gutter) 场景下，分割线绝对吸附于物理缝隙正中央 (中位线)"""
+    # 构造 200x200 画布，在 x=92..108 (宽度 16px) 放置一条纯白缝隙槽
+    im = Image.new("RGB", (200, 200), (30, 30, 30))
+    for x in range(92, 108):
+        for y in range(200):
+            im.putpixel((x, y), (255, 255, 255))
+
+    v_lines = detect_dividers_universal(im, orientation="v", n_grid=2)
+    assert len(v_lines) == 1
+    # 缝隙区间为 [92, 107]，中点为 99~100
+    assert 98 <= v_lines[0] <= 101
+
+
+def test_detect_dividers_transparent_rgba():
+    """验证 RGBA 透明背景拼图素材在透明留白缝隙处的中心吸附"""
+    # 构造 200x200 透明画布，左右两侧有不透明色块，中间 x=80..120 为全透明
+    im = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+    # 左侧色块
+    for x in range(0, 80):
+        for y in range(200):
+            im.putpixel((x, y), (200, 50, 50, 255))
+    # 右侧色块
+    for x in range(120, 200):
+        for y in range(200):
+            im.putpixel((x, y), (50, 200, 50, 255))
+
+    v_lines = detect_dividers_universal(im, orientation="v", n_grid=2)
+    assert len(v_lines) == 1
+    # 透明缝隙 [80, 119]，中心为 99~100
+    assert 98 <= v_lines[0] <= 102
+
+
+def test_calculate_default_grid_auto_snap():
+    """验证 calculate_default_grid 配合 auto_snap=True 自动执行波谷吸附"""
+    im = Image.new("RGB", (200, 200), (40, 40, 40))
+    # 在 x=94..106 绘制 12px 缝隙槽
+    for x in range(94, 106):
+        for y in range(200):
+            im.putpixel((x, y), (255, 255, 255))
+
+    # 1. 普通几何等分
+    cfg_normal = calculate_default_grid(img=im, rows=2, cols=2, auto_snap=False)
+    assert cfg_normal.col_lines == [100]
+
+    # 2. 智能吸附
+    cfg_snap = calculate_default_grid(img=im, rows=2, cols=2, auto_snap=True)
+    assert len(cfg_snap.col_lines) == 1
+    assert 98 <= cfg_snap.col_lines[0] <= 102
+
