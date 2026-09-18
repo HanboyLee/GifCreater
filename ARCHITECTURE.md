@@ -105,7 +105,7 @@ GifCreater/
 
 ### 4. 静态资产管理 (`resources/`)
 * **准则**：严禁将图片、图标硬编码在代码或散落在根目录。
-* **职责**：统一存放矢量 SVG、PNG 图标、应用 `.ico` 徽标、QSS 样式表与开箱即用的预设模板 JSON。
+* **职责**：统一存放应用官方多尺寸图标（`resources/icons/app_icon.ico`、`app_icon.png`）、矢量 SVG、QSS 样式表与开箱即用的预设模板 JSON。
 
 ### 5. 质量保证与测试套件 (`tests/`)
 * **准则**：

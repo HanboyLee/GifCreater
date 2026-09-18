@@ -47,7 +47,7 @@ from ..core import (
     calculate_default_grid,
     detect_bounds,
 )
-from ..utils.paths import get_default_output_dirs
+from ..utils.paths import get_default_output_dirs, get_base_dir
 from .canvas import InteractiveCanvas
 from .filmstrip import FilmstripWidget
 from .sidebar import ControlSidebar
@@ -63,6 +63,13 @@ class MainWindow(MSFluentWindow):
         self.setWindowTitle("🎞️ GifCreater 动画工坊 v3.0")
         self.resize(1180, 780)
         self.setMinimumSize(980, 680)
+
+        # 挂载官方品牌图标
+        icon_path = Path(get_base_dir()) / "resources" / "icons" / "app_icon.ico"
+        if not icon_path.exists():
+            icon_path = Path(get_base_dir()) / "resources" / "icons" / "app_icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         # 核心数据状态
         self.current_file_path: Optional[Path] = None

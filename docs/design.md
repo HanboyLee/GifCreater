@@ -492,7 +492,32 @@ UI 输入 (duration, end_pause, boomerang)
 
 ---
 
-## 十五、 变更与演进记录 (Changelog)
+## 十五、 官方品牌标识与 Windows 桌面原生图标系统 (App Icon & Desktop Native Integration)
+
+### 1. 品牌视觉资产规范
+- **图标定位**：`resources/icons/app_icon.png` (512×512 高清母版) 与 `resources/icons/app_icon.ico`；
+- **多分辨率 Mipmap**：
+  采用 Windows 官方标准的 7 级多分辨率金字塔封装：
+  `16x16`, `24x24`, `32x32`, `48x48`, `64x64`, `128x128`, `256x256`。
+  确保从任务栏极小图标（16px）到高分屏桌面超大图标（256px）均保持极致锐利。
+
+### 2. Windows 任务栏独立进程绑定 (AppUserModelID)
+在 Windows 平台上，若未指定显式进程 ID，操作系统会将基于 Python 启动的进程统一归并为通用 Python 宿主，导致任务栏显示默认图标。
+系统在 `main.py` 启动首阶段执行显式绑定：
+```python
+if sys.platform == "win32":
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HanboyLee.GifCreater.App.3.4")
+```
+同步在 `QApplication` 与 `MainWindow` 顶层设置 `app.setWindowIcon(QIcon("resources/icons/app_icon.ico"))`。
+
+### 3. PyInstaller 独立分发打包集成
+在 `GifCreater.spec` 中将 `icon='resources/icons/app_icon.ico'` 注入可执行程序元数据，确保生成的 `GifCreater.exe` 自带官方高保真图标。
+
+---
+
+## 十六、 变更与演进记录 (Changelog)
+- **2026-09-18 (v3.4.3 官方品牌图标与 Windows 桌面原生挂载)**：确立「极简双态几何切片」官方品牌 Logo，生成多尺寸工业级 ICO 资产并挂载至窗口与任务栏，内嵌至 PyInstaller EXE 打包。
 - **2026-09-18 (v3.4.2 智能网格线波谷居中吸附与一键对齐)**：重构网格线探测为投影能量积分与槽隙物理中位线算法，在侧边栏新增「⚡ 智能吸附参考线」按钮，彻底解决分镜未对齐问题。
 - **2026-09-18 (v3.4.1 导出帧时序高保真与微信 Boomerang 统一)**：重构微信表情包导出与压缩管线，移除 120ms 强制截断与尾帧抹平，增加 GIF89a 标准 10ms 延时量化保护，全格式打通 Boomerang 镜像往复。
 - **2026-09-18 (v3.4 统一主题系统与高对比度设计令牌)**：新增 `ThemeManager` 与 `resources/themes/*.qss`，彻底解决深色背景黑色文字问题，实现深浅色无缝热重载。

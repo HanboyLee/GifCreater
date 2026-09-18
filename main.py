@@ -7,12 +7,24 @@ GifCreater 动图工坊 v3.0 主应用入口
 - 启动 PyQt6 现代化 Fluent UI 视窗事件循环
 """
 
+import os
 import sys
+from pathlib import Path
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 from qfluentwidgets import Theme, setTheme
 
+# 注册 Windows 原生 AppUserModelID 以确保任务栏显示独立应用图标
+if sys.platform == "win32":
+    import ctypes
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HanboyLee.GifCreater.App.3.4")
+    except Exception:
+        pass
+
 from src.gifcreater.ui.main_window import MainWindow
+from src.gifcreater.utils.paths import get_base_dir
 
 
 def main():
@@ -24,6 +36,13 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("GifCreater")
     app.setOrganizationName("HanboyLee")
+
+    # 挂载官方品牌图标
+    icon_path = Path(get_base_dir()) / "resources" / "icons" / "app_icon.ico"
+    if not icon_path.exists():
+        icon_path = Path(get_base_dir()) / "resources" / "icons" / "app_icon.png"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     from src.gifcreater.config.theme_manager import ThemeManager, ThemeMode
 

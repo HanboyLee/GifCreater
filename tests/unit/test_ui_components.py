@@ -175,6 +175,7 @@ def test_main_window_headless(qapp, tmp_path):
     """测试主窗口生命周期与素材加载"""
     win = MainWindow()
     assert win.windowTitle().startswith("🎞️ GifCreater")
+    assert not win.windowIcon().isNull()
 
     # 验证工作区 QSplitter 自适应
     assert win.work_splitter is not None
