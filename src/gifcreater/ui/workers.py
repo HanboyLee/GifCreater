@@ -8,7 +8,6 @@ GifCreater 异步工作线程调度层 (Worker Threads)
 - ExportWorker: 微信表情包自适应调色板试探压缩、GIF / WebP 导出
 """
 
-from pathlib import Path
 from typing import List, Optional
 from PIL import Image
 from PyQt6.QtCore import QThread, pyqtSignal

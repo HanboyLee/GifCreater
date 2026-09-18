@@ -10,7 +10,6 @@ GifCreater 交互式视口画布 (Interactive Canvas)
 - 原地动图播放器（FPS 自适应，常规循环 / 乒乓往复 Boomerang）
 """
 
-import io
 from typing import List, Optional
 from PIL import Image
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPointF, QRectF

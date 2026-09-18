@@ -19,6 +19,9 @@
 4. **GitHub Releases 国际化语言铁律 (English-Only Releases)**：
    - **所有 GitHub Releases（发布版本名称、Release Notes 正文、更新说明及资产描述）必须 100% 使用纯英文（English）撰写，严禁包含任何中文**。
    - CI/CD 自动化流水线（`.github/workflows/release.yml`）以及未来所有 Release 发布脚本必须严格保持纯英文格式。
+5. **需求文档 Check 格式与 Git Push 同步铁律**：
+   - **Check 清单化撰写**：后续凡向需求文档（`docs/requirements.md`）添加或变更需求，**必须强制采用 Markdown Task List 检查框语法**（`- [x]` / `- [ ]`）进行层级化管理，严禁无状态纯文本。
+   - **Git Push 强绑定**：**在执行 `git push` 之前必须同步更新需求与设计文档**（推进完成态 `- [x]` 并追加变更日志），**除非本次改动完全未更改任何需求**，否则未更新文档严禁推送。
 
 ---
 
@@ -42,6 +45,24 @@
 ### 2.2 微小改动与轻量缺陷修复 (Minor / Patch Changes)
 - 仅限于单点文本微调、明确的单一小 Bug 修复、拼写修正或轻量级注释修改。
 - **此类改动允许免除前置讨论**，可直接修改并提供验证凭证，以保障交付效率。
+
+### 2.3 需求文档 Checklist 撰写规范与 Git Push 同步红线 (Requirements & Push Contract)
+1. **需求必须以 Check 方式撰写**：
+   - 日后凡是向需求文档（`docs/requirements.md`）中添加、追加或调整任何需求，**必须 100% 强制采用 Markdown Task List 检查框格式**：
+     - 已实现并验证通过的条目：使用 `- [x]`；
+     - 规划中、推进中或待启动的条目：使用 `- [ ]`；
+   - 严禁使用无法直观反映完成状态的纯数字列表或无勾选状态的散落纯文本。
+2. **Git Push 强绑定文档更新（除非未更改需求）**：
+   - **Push 前强制同步**：在每次执行 `git push`（或 Git Commit 交付）前，**必须同步检查并更新需求文档（以及对应设计与架构文档）**，确保所有已落地的条目均已准确勾选（由 `- [ ]` 更新为 `- [x]`）并在 Changelog 中追加对应记录；
+   - **唯一豁免原则**：**除非本次提交完全没有更改或涉及任何需求与功能逻辑**（例如纯本地环境脚本微调、轻量级注释/拼写修正），否则未同步更新需求文档的情况下，**严禁执行 `git push`**。
+
+### 2.4 演进路线图 (roadmap.md) 锚定与大版本结项回写机制 (Roadmap Closed Loop)
+1. **立项前“路线图锚定” (Pre-Implementation Alignment)**：
+   - 凡是发起大中型功能或新特性立项时，必须先核对 `docs/roadmap.md`；若新功能打破了原有版本演进次序（如优先级插队或跨版本合并），必须在输出立项规格书（`spec/`）的同时，微调同步路线图的演进阶段。
+2. **大版本里程碑结项回写 (Milestone Promotion)**：
+   - 当某大版本在 `docs/requirements.md` 中的需求清单全部完成交付（全部变为 `- [x]`）并准备发布时，**必须在同一个 Commit 中同步回写 `docs/roadmap.md`**：提升“当前基线版本号”，将该里程碑归入已交付基线，并校准下一阶段近景目标。
+3. **自动化守卫门禁 (Automated Doc-Guard)**：
+   - 专案提供 `scripts/tools/check_doc_sync.py` 自动化检查脚本。在进行大版本发布或自检时，运行 `python scripts/tools/check_doc_sync.py` 自动核验 `roadmap.md` 与 `requirements.md` 的版本一致性，杜绝脱节。
 
 ---
 

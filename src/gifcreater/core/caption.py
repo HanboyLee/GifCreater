@@ -6,7 +6,7 @@
 
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union, List
+from typing import Optional, Tuple, Union
 from PIL import Image, ImageDraw, ImageFont
 
 

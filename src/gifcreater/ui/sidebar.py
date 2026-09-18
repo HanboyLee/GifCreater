@@ -17,7 +17,6 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QColorDialog,
-    QFrame,
     QGridLayout,
     QHBoxLayout,
     QSizePolicy,

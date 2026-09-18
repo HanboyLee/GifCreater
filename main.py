@@ -7,13 +7,11 @@ GifCreater 动图工坊 v3.0 主应用入口
 - 启动 PyQt6 现代化 Fluent UI 视窗事件循环
 """
 
-import os
 import sys
 from pathlib import Path
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
-from qfluentwidgets import Theme, setTheme
 
 # 注册 Windows 原生 AppUserModelID 以确保任务栏显示独立应用图标
 if sys.platform == "win32":

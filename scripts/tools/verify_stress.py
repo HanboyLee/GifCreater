@@ -14,7 +14,6 @@ import os
 import sys
 import time
 import random
-import traceback
 from typing import List, Tuple
 from PIL import Image
 
@@ -25,8 +24,6 @@ from src.gifcreater.core.bounds import detect_bounds
 from src.gifcreater.core.slicer import (
     GridConfig,
     calculate_default_grid,
-    detect_dividers_universal,
-    get_grid_divider_coords,
     slice_image,
 )
 from src.gifcreater.core.exporter import (

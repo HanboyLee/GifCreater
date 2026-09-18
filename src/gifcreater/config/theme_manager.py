@@ -10,9 +10,9 @@ GifCreater 主题与设计令牌系统 (Theme & Design Tokens System)
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal
-from qfluentwidgets import Theme, isDarkTheme, setTheme
+from qfluentwidgets import Theme, setTheme
 
 
 class ThemeMode(str, Enum):

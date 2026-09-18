@@ -14,7 +14,7 @@ GifCreater 水平卡片式序列帧胶卷 (Filmstrip Widget)
 from typing import List, Set
 from PIL import Image
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QKeyEvent, QMouseEvent, QPixmap
+from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,

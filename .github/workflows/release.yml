@@ -35,11 +35,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Verify Documentation Synchronization
+        run: |
+          python scripts/tools/check_doc_sync.py
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check .
+
       - name: Run Pytest with 90% Coverage Gate
         env:
           PYTHONPATH: .
         run: |
           python -m pytest tests/ --cov=src/gifcreater/core --cov=gif_tool --cov-report=term-missing --cov-fail-under=90
+
 
   # 阶段 2：自动化打包与 Release 部署
   build-and-release:

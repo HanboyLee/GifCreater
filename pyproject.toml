@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "output",
+    ".pytest_cache",
+    ".coverage",
+]
+
+[tool.ruff.lint]
+select = [
+    "E9",  # Syntax errors & fatal issues
+    "F",   # Pyflakes (unbound variables, syntax bugs, undefined names)
+]
+ignore = [
+    "E501", # line too long
+    "E402", # module level import not at top
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["F401", "F841", "F811"]
+"gif_tool.py" = ["F401"]
+

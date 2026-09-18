@@ -11,15 +11,12 @@ GifCreater 主视窗系统 (Main Window Presentation)
 - 采用 Fluent InfoBar 现代轻量气泡通知与 ProgressRing 状态反馈
 """
 
-import os
-import sys
 from pathlib import Path
 from typing import List, Optional
 from PIL import Image
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QIcon
 from PyQt6.QtWidgets import (
-    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -34,13 +31,8 @@ from qfluentwidgets import (
     MSFluentWindow,
     ProgressRing,
     PushButton,
-    SubtitleLabel,
-    Theme,
-    setTheme,
-    toggleTheme,
 )
 
-from ..config.presets import PRESETS
 from ..config.theme_manager import ThemeManager
 from ..core import (
     GridConfig,
