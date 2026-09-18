@@ -20,7 +20,11 @@ jobs:
   test:
     name: Run TDD Tests & 90% Coverage Gate
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
