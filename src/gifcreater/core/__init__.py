@@ -36,6 +36,10 @@ from .exporter import (
     process_image_to_gif,
     natural_sort_key,
 )
+from .caption import (
+    draw_caption,
+    apply_caption_to_frames,
+)
 
 __all__ = [
     "GridConfig",
@@ -54,4 +58,7 @@ __all__ = [
     "create_gif",
     "process_image_to_gif",
     "natural_sort_key",
+    "draw_caption",
+    "apply_caption_to_frames",
 ]
+

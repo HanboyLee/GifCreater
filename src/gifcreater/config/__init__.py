@@ -7,15 +7,19 @@ GifCreater 配置与偏好管理包 (Configuration & Preferences)
 - settings: 本地 JSON 配置文件存取管理器 (SettingsManager) 与配置实体 (AppConfig)
 """
 
-__version__ = "3.0.0"
+from .presets import ExportPreset, PRESETS, DEFAULT_PRESET_KEY, get_preset, list_preset_items
+
+__all__ = [
+    "ExportPreset",
+    "PRESETS",
+    "DEFAULT_PRESET_KEY",
+    "get_preset",
+    "list_preset_items",
+]
 
 try:
     from .settings import SettingsManager, AppConfig
-
-    __all__ = [
-        "SettingsManager",
-        "AppConfig",
-    ]
+    __all__.extend(["SettingsManager", "AppConfig"])
 except ImportError:
-    # 待 Milestone R3 落地偏好配置管理逻辑后自动激活
-    __all__ = []
+    pass
+

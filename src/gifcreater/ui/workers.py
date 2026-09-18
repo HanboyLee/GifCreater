@@ -20,6 +20,7 @@ from ..core import (
     export_gif,
     export_webp,
     save_to_disk,
+    apply_caption_to_frames,
 )
 from ..utils.paths import get_default_output_dirs
 
@@ -58,7 +59,7 @@ class SliceWorker(QThread):
 
 class ExportWorker(QThread):
     """
-    异步动图导出工作线程：执行自适应调色板探针计算与文件写出
+    异步动图导出工作线程：执行自适应调色板探针计算、配文叠加与文件写出
     """
     progressChanged = pyqtSignal(int)
     stageChanged = pyqtSignal(str)
@@ -68,20 +69,24 @@ class ExportWorker(QThread):
     def __init__(
         self,
         frames: List[Image.Image],
-        preset: str = "gif",
+        preset: str = "wechat",
         duration: int = 350,
         end_pause: int = 1500,
         boomerang: bool = False,
         base_name: str = "animation",
+        caption_text: Optional[str] = None,
+        caption_pos: str = "bottom",
         parent=None,
     ):
         super().__init__(parent)
         self.frames = frames
-        self.preset = preset.lower()  # "gif", "wechat", "webp"
+        self.preset = preset.lower()  # "wechat", "xiaohongshu", "hd_gif", "gif", "webp"
         self.duration = duration
         self.end_pause = end_pause
         self.boomerang = boomerang
         self.base_name = base_name
+        self.caption_text = caption_text
+        self.caption_pos = caption_pos
 
     def run(self):
         try:
@@ -91,8 +96,15 @@ class ExportWorker(QThread):
             self.stageChanged.emit("准备生成动图数据...")
             self.progressChanged.emit(10)
 
+            # 叠加表情包文字配文 (若指定)
+            export_frames = list(self.frames)
+            if self.caption_text and self.caption_text.strip():
+                export_frames = apply_caption_to_frames(
+                    export_frames, self.caption_text.strip(), position=self.caption_pos
+                )
+
             # 构建帧间隔列表
-            durations = [self.duration] * len(self.frames)
+            durations = [self.duration] * len(export_frames)
             if self.end_pause > 0 and len(durations) > 0:
                 durations[-1] = self.end_pause
 
@@ -102,10 +114,14 @@ class ExportWorker(QThread):
             if self.preset == "wechat":
                 self.stageChanged.emit("正在进行微信表情包自适应调色板试探压缩 (<=500KB, <=240px)...")
                 self.progressChanged.emit(30)
-                # 执行自适应压缩
+                # 微信表情包推荐帧间隔与首尾优化
+                wc_durations = [120 if d > 160 else d for d in durations]
+                if self.boomerang or self.end_pause > 500:
+                    wc_durations[-1] = wc_durations[0]
+
                 data = compress_wechat_gif(
-                    frames=self.frames,
-                    durations=durations,
+                    frames=export_frames,
+                    durations=wc_durations,
                     max_size_bytes=500 * 1024,
                     max_side=240,
                 )
@@ -114,11 +130,32 @@ class ExportWorker(QThread):
                 target_path = gifs_dir / filename
                 saved_path = save_to_disk(data, target_path)
 
+            elif self.preset == "xiaohongshu":
+                self.stageChanged.emit("正在生成小红书 3:4 社交高清动图...")
+                self.progressChanged.emit(40)
+                max_edge = 1080
+                w0, h0 = export_frames[0].size
+                if max(w0, h0) > max_edge:
+                    scale = max_edge / max(w0, h0)
+                    target_w = max(1, int(round(w0 * scale)))
+                    target_h = max(1, int(round(h0 * scale)))
+                    export_frames = [im.resize((target_w, target_h), Image.Resampling.LANCZOS) for im in export_frames]
+                data = export_gif(
+                    frames=export_frames,
+                    durations=durations,
+                    loop=0,
+                    boomerang=self.boomerang,
+                )
+                self.progressChanged.emit(85)
+                filename = f"{self.base_name}_xhs.gif"
+                target_path = gifs_dir / filename
+                saved_path = save_to_disk(data, target_path)
+
             elif self.preset == "webp":
                 self.stageChanged.emit("正在编码高保真 WebP 动图...")
                 self.progressChanged.emit(40)
                 data = export_webp(
-                    frames=self.frames,
+                    frames=export_frames,
                     durations=durations,
                     loop=0,
                     boomerang=self.boomerang,
@@ -128,11 +165,11 @@ class ExportWorker(QThread):
                 target_path = gifs_dir / filename
                 saved_path = save_to_disk(data, target_path)
 
-            else:  # 原画高清 GIF
+            else:  # hd_gif / original gif
                 self.stageChanged.emit("正在生成高清原画 GIF...")
                 self.progressChanged.emit(40)
                 data = export_gif(
-                    frames=self.frames,
+                    frames=export_frames,
                     durations=durations,
                     loop=0,
                     boomerang=self.boomerang,
@@ -149,3 +186,4 @@ class ExportWorker(QThread):
 
         except Exception as e:
             self.exportFailed.emit(str(e))
+

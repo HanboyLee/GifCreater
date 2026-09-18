@@ -35,6 +35,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ..core import GridConfig
+from ..core.caption import draw_caption
+
 
 
 def pil_to_qpixmap(pil_img: Image.Image) -> QPixmap:
@@ -155,7 +157,7 @@ class InteractiveCanvas(QGraphicsView):
 
         self._show_placeholder()
 
-        # 播放器状态
+        # 播放器状态与配文
         self.frames: List[Image.Image] = []
         self.frame_pixmaps: List[QPixmap] = []
         self.play_indices: List[int] = []
@@ -164,9 +166,12 @@ class InteractiveCanvas(QGraphicsView):
         self.duration_ms = 350
         self.end_pause_ms = 1500
         self.boomerang = False
+        self.caption_text = ""
+        self.caption_pos = "bottom"
 
         self.play_timer = QTimer(self)
         self.play_timer.timeout.connect(self._on_play_tick)
+
 
         # 拖拽平移辅助
         self.space_pressed = False
@@ -265,12 +270,28 @@ class InteractiveCanvas(QGraphicsView):
 
     # ---------------- 动图原地播放器控制 ----------------
 
+    def _generate_frame_pixmap(self, frame: Image.Image) -> QPixmap:
+        """根据当前配文状态动态生成帧 Pixmap (所见即所得)"""
+        if self.caption_text:
+            rendered = draw_caption(frame, self.caption_text, position=self.caption_pos)
+            return pil_to_qpixmap(rendered)
+        return pil_to_qpixmap(frame)
+
+    def set_caption(self, text: str, position: str = "bottom"):
+        """实时设置表情包配文并刷新预览 (WYSIWYG)"""
+        self.caption_text = text.strip() if text else ""
+        self.caption_pos = position or "bottom"
+        if self.frames:
+            self.frame_pixmaps = [self._generate_frame_pixmap(f) for f in self.frames]
+            self._display_current_frame()
+
     def set_animation_frames(self, frames: List[Image.Image], boomerang: bool = False):
         """载入切片动图帧并准备播放"""
         self.stop_playback()
         self.frames = frames
         self.boomerang = boomerang
-        self.frame_pixmaps = [pil_to_qpixmap(f) for f in frames]
+        self.frame_pixmaps = [self._generate_frame_pixmap(f) for f in frames]
+
 
         if not frames:
             return

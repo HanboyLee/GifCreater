@@ -28,7 +28,7 @@ def qapp():
 
 
 def test_canvas_and_player(qapp):
-    """测试可交互画布与原地动图播放器"""
+    """测试可交互画布与原地动图播放器及配文联动"""
     canvas = InteractiveCanvas()
     pil_img = create_dummy_grid_image(120, 120, rows=2, cols=2)
     grid = calculate_default_grid(120, 120, 2, 2)
@@ -56,6 +56,11 @@ def test_canvas_and_player(qapp):
     assert canvas.is_playing is False
     canvas.seek_frame(0)
     assert canvas.current_play_idx == 0
+
+    # 6. 配文所见即所得测试
+    canvas.set_caption("测试表情包配文", "bottom")
+    assert canvas.caption_text == "测试表情包配文"
+    assert canvas.caption_pos == "bottom"
 
 
 def test_filmstrip_widget(qapp):
@@ -88,25 +93,46 @@ def test_filmstrip_widget(qapp):
 
 
 def test_control_sidebar(qapp):
-    """测试现代参数控制侧边栏"""
+    """测试现代参数控制侧边栏与配文预设控件"""
     sidebar = ControlSidebar()
 
-    # 1. 默认预设
-    assert sidebar.get_export_preset() == "gif"
-
-    # 2. 切换至微信表情包
-    sidebar.rb_exp_wechat.setChecked(True)
+    # 1. 默认预设 (微信表情包)
     assert sidebar.get_export_preset() == "wechat"
 
-    # 3. 切换至 WebP
-    sidebar.rb_exp_webp.setChecked(True)
+    # 2. 切换下拉预设
+    sidebar.combo_presets.setCurrentIndex(1)
+    assert sidebar.get_export_preset() == "xiaohongshu"
+    sidebar.combo_presets.setCurrentIndex(2)
+    assert sidebar.get_export_preset() == "hd_gif"
+    sidebar.combo_presets.setCurrentIndex(3)
     assert sidebar.get_export_preset() == "webp"
+
+    # 3. 配文输入与位置切换
+    assert sidebar.get_caption_text() == ""
+    assert sidebar.get_caption_position() == "bottom"
+
+    captured = []
+    sidebar.captionChanged.connect(lambda text, pos: captured.append((text, pos)))
+
+    sidebar.edit_caption.setText("大吉大利")
+    assert sidebar.get_caption_text() == "大吉大利"
+    assert len(captured) > 0
+    assert captured[-1] == ("大吉大利", "bottom")
+
+    sidebar.rb_pos_top.setChecked(True)
+    assert sidebar.get_caption_position() == "top"
+    assert captured[-1] == ("大吉大利", "top")
 
     # 4. 锁定与解锁处理状态
     sidebar.set_processing_state(True)
     assert sidebar.btn_process.isEnabled() is False
+    assert sidebar.edit_caption.isEnabled() is False
+    assert sidebar.combo_presets.isEnabled() is False
     sidebar.set_processing_state(False)
     assert sidebar.btn_process.isEnabled() is True
+    assert sidebar.edit_caption.isEnabled() is True
+    assert sidebar.combo_presets.isEnabled() is True
+
 
 
 def test_main_window_headless(qapp, tmp_path):

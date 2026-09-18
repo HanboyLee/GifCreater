@@ -11,6 +11,8 @@ import re
 from typing import List, Tuple, Optional, Union
 from PIL import Image
 
+from .caption import apply_caption_to_frames
+
 __all__ = [
     "natural_sort_key",
     "generate_boomerang_sequence",
@@ -59,11 +61,14 @@ def export_gif(
     loop: int = 0,
     boomerang: bool = False,
     optimize: bool = False,
+    caption_text: Optional[str] = None,
+    caption_pos: str = "bottom",
 ) -> Union[bytes, str]:
     """
     封装高质量 GIF 动图
     - 若 output_path 为 None，纯内存运行返回 bytes
     - 若 output_path 为字符串，写出文件并返回绝对路径 str
+    - 支持可选的表情包配文叠加 (caption_text, caption_pos)
     """
     if not frames:
         raise ValueError("帧列表为空，无法导出 GIF")
@@ -72,6 +77,9 @@ def export_gif(
     if isinstance(output_path, int):
         loop = output_path
         output_path = None
+
+    if caption_text:
+        frames = apply_caption_to_frames(frames, caption_text, position=caption_pos)
 
     if boomerang:
         exp_frames, exp_durs = generate_boomerang_sequence(frames, durations)
@@ -114,11 +122,14 @@ def export_webp(
     boomerang: bool = False,
     quality: int = 85,
     method: int = 6,
+    caption_text: Optional[str] = None,
+    caption_pos: str = "bottom",
 ) -> Union[bytes, str]:
     """
     封装高保真 WebP 动图 (全彩 1600 万色 + Alpha 通道)
     - 若 output_path 为 None，返回 bytes
     - 若 output_path 为字符串，写出文件并返回绝对路径 str
+    - 支持可选的表情包配文叠加 (caption_text, caption_pos)
     """
     if not frames:
         raise ValueError("帧列表为空，无法导出 WebP")
@@ -127,10 +138,14 @@ def export_webp(
         loop = output_path
         output_path = None
 
+    if caption_text:
+        frames = apply_caption_to_frames(frames, caption_text, position=caption_pos)
+
     if boomerang:
         exp_frames, exp_durs = generate_boomerang_sequence(frames, durations)
     else:
         exp_frames, exp_durs = list(frames), list(durations)
+
 
     first_size = exp_frames[0].size
     processed = [
@@ -180,9 +195,11 @@ def create_animation(
     boomerang: bool = False,
     resize: Optional[Tuple[int, int]] = None,
     wechat_mode: bool = False,
+    caption_text: Optional[str] = None,
+    caption_pos: str = "bottom",
 ) -> str:
     """
-    通用动图合成接口（支持原画 GIF、微信表情包标准、WebP、乒乓往复循环）。
+    通用动图合成接口（支持原画 GIF、微信表情包标准、WebP、乒乓往复循环、表情包配文）。
     100% 兼容历史调用入参与文件/目录解析行为。
     """
     if wechat_mode:
@@ -222,8 +239,6 @@ def create_animation(
 
     # 2. 预设特化与尺寸时延处理
     if preset == "wechat":
-        from .compressor import compress_wechat_gif
-
         max_edge = 240
         w0, h0 = images[0].size
         scale = min(max_edge / w0, max_edge / h0, 1.0)
@@ -234,6 +249,14 @@ def create_animation(
             duration = 120
         if boomerang or last_frame_pause > 500:
             last_frame_pause = 0
+    elif preset == "xiaohongshu":
+        max_edge = 1080
+        w0, h0 = images[0].size
+        if max(w0, h0) > max_edge:
+            scale = max_edge / max(w0, h0)
+            target_w = max(1, int(round(w0 * scale)))
+            target_h = max(1, int(round(h0 * scale)))
+            images = [im.resize((target_w, target_h), Image.Resampling.LANCZOS) for im in images]
     elif resize:
         images = [im.resize(resize, Image.Resampling.LANCZOS) for im in images]
     else:
@@ -242,6 +265,10 @@ def create_animation(
             im.resize(first_size, Image.Resampling.LANCZOS) if im.size != first_size else im
             for im in images
         ]
+
+    # 叠加表情包文字配文 (若指定)
+    if caption_text:
+        images = apply_caption_to_frames(images, caption_text, position=caption_pos)
 
     num_frames = len(images)
     durations = [duration] * num_frames
@@ -279,6 +306,8 @@ def create_gif(
     resize: Optional[Tuple[int, int]] = None,
     boomerang: bool = False,
     wechat_mode: bool = False,
+    caption_text: Optional[str] = None,
+    caption_pos: str = "bottom",
 ) -> str:
     """历史 create_gif 快捷函数"""
     return create_animation(
@@ -291,6 +320,8 @@ def create_gif(
         boomerang=boomerang,
         resize=resize,
         wechat_mode=wechat_mode,
+        caption_text=caption_text,
+        caption_pos=caption_pos,
     )
 
 
@@ -308,6 +339,8 @@ def process_image_to_gif(
     scale_factor: float = 1.0,
     preset: str = "original",
     boomerang: bool = False,
+    caption_text: Optional[str] = None,
+    caption_pos: str = "bottom",
 ) -> Tuple[List[str], str]:
     """一键拆解网格图并合成动图全流程"""
     from .slicer import split_grid_image
@@ -342,6 +375,9 @@ def process_image_to_gif(
         last_frame_pause=last_frame_pause,
         preset=preset,
         boomerang=boomerang,
+        caption_text=caption_text,
+        caption_pos=caption_pos,
     )
 
     return frames, result_path
+

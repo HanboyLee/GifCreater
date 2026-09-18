@@ -166,3 +166,39 @@ def test_export_empty_frames_errors():
 
     with pytest.raises(ValueError, match="帧列表为空"):
         export_webp([], [100])
+
+
+def test_export_gif_with_caption():
+    """验证 export_gif 叠加表情包文字"""
+    frames = [Image.new("RGB", (80, 80), (100, 100, 100)) for _ in range(3)]
+    durations = [100] * 3
+    data = export_gif(frames, durations, caption_text="测试表情包配文", caption_pos="bottom")
+    assert isinstance(data, bytes)
+    assert data.startswith(b"GIF89a") or data.startswith(b"GIF87a")
+
+
+def test_export_webp_with_caption():
+    """验证 export_webp 叠加顶部文字"""
+    frames = [Image.new("RGBA", (100, 100), (0, 0, 0, 255)) for _ in range(2)]
+    durations = [150, 150]
+    data = export_webp(frames, durations, caption_text="顶部配文", caption_pos="top")
+    assert isinstance(data, bytes)
+    assert data[:4] == b"RIFF"
+
+
+def test_create_animation_xiaohongshu_and_caption(tmp_path):
+    """验证 xiaohongshu 预设与配文一体化导出"""
+    frames = [Image.new("RGB", (1200, 1600), (50, 100, 150)) for _ in range(2)]
+    out_file = tmp_path / "xhs.gif"
+    res = create_animation(
+        frames,
+        str(out_file),
+        preset="xiaohongshu",
+        caption_text="小红书爆款动图",
+        caption_pos="bottom",
+    )
+    assert Path(res).exists()
+    with Image.open(res) as im:
+        # 尺寸应被限缩到 1080px 最长边
+        assert max(im.size) <= 1080
+

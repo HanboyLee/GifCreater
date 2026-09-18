@@ -140,9 +140,11 @@ class MainWindow(MSFluentWindow):
         self.sidebar = ControlSidebar(self)
         self.sidebar.gridParamChanged.connect(self._on_grid_param_changed)
         self.sidebar.timingChanged.connect(self._on_timing_changed)
+        self.sidebar.captionChanged.connect(self.canvas.set_caption)
         self.sidebar.startProcessRequested.connect(self._start_slice_and_export)
         self.sidebar.openOutputRequested.connect(self._open_output_dir)
         work_layout.addWidget(self.sidebar)
+
 
         self.main_layout.addLayout(work_layout, 1)
 
@@ -284,6 +286,8 @@ class MainWindow(MSFluentWindow):
         end_pause = self.sidebar.slider_pause.value()
         boomerang = self.sidebar.rb_loop_boomerang.isChecked()
         base_name = self.current_file_path.stem if self.current_file_path else "animation"
+        caption_text = self.sidebar.get_caption_text()
+        caption_pos = self.sidebar.get_caption_position()
 
         self.export_worker = ExportWorker(
             frames=frames,
@@ -292,12 +296,15 @@ class MainWindow(MSFluentWindow):
             end_pause=end_pause,
             boomerang=boomerang,
             base_name=base_name,
+            caption_text=caption_text,
+            caption_pos=caption_pos,
             parent=self,
         )
         self.export_worker.stageChanged.connect(self.label_status.setText)
         self.export_worker.exportFinished.connect(self._on_export_finished)
         self.export_worker.exportFailed.connect(self._on_worker_failed)
         self.export_worker.start()
+
 
     def _on_export_finished(self, output_path: str, size_bytes: int):
         self.sidebar.set_processing_state(False)

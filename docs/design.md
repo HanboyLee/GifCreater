@@ -250,10 +250,10 @@ GifCreater/
    * **定位**：依照 AGENTS.md 规范，作为全专案唯一允许存放文档的根目录。
    * **演进**：下设 `prd/` 承载各版本需求规格；`architecture/` 承载技术设计；`manuals/` 承载用户使用手册与版本更新说明。
 2. **`src/gifcreater/` (生产代码体系)**：
-   * **`core/`**：专职负责图像切分、去黑边算法、微信 500KB 调色板试探压缩、GIF/WebP 编码，严格保证纯 Python/C 运算，零 GUI 依赖；
+   * **`core/`**：专职负责图像切分、去黑边算法、微信 500KB 调色板试探压缩、GIF/WebP 编码、表情包文字叠加渲染，严格保证纯 Python/C 运算，零 GUI 依赖；
    * **`ui/`**：专职负责 Fluent 现代窗口、可交互画布、时间轴胶卷等视觉交互；
-   * **`config/`**：未来负责记录用户最后打开路径、最近使用的网格行列数、帧率偏好与自定义导出预设；
-   * **`i18n/`**：未来承载国际化多语言翻译字典，支持中英双语即时切换；
+   * **`config/`**：负责记录用户最后打开路径、最近使用的网格行列数、帧率偏好与自定义导出预设；
+   * **`i18n/`**：承载国际化多语言翻译字典，支持中英双语即时切换；
    * **`utils/`**：收拢跨平台安全路径解析、目录自动创建与写入权限降级。
 3. **`resources/` (静态资源与视觉资产)**：
    * 彻底避免以往将图标、图片硬编码或散落在代码目录的做法，集中收纳应用的 `.ico`、矢量 `.svg`、Fluent 样式表和开箱即用的预设模板。
@@ -263,3 +263,100 @@ GifCreater/
    * 集中收纳自动化打包批处理脚本、图标多尺寸编译脚本等，保持根目录清爽。
 6. **`output/` (本地运行时归档)**：
    * 本地计算与导出文件的专属收纳区，在 `.gitignore` 中强制忽略，杜绝污染 Git 仓库。
+
+---
+
+## 七、 v3.1 平台导出预设与表情包配文增强技术设计
+
+### 1. 表情包文字叠加无头渲染引擎 (`core/caption.py` / `core/exporter.py`)
+- **算法设计原则**：
+  1. **零侵入与零开销**：当配文文本为空或仅包含空白字符时，直接返回原图引用，不执行任何 PIL Draw 操作，保证原始图像 0 压缩失真与 0 额外耗时；
+  2. **高对比度黑边白字 (Stroke Rendering)**：
+     - 采用 Pillow 经典文本描边 API：`draw.text((x, y), text, font=font, fill=(255, 255, 255), stroke_width=stroke_px, stroke_fill=(0, 0, 0))`；
+     - 描边宽度自适应：`stroke_px = max(1, int(font_size * 0.08))`；
+  3. **文字位置与安全内边距**：
+     - `bottom` 模式（默认）：文字底部与图像下边缘保持 `max(8, int(h * 0.05))` 像素安全间距；
+     - `top` 模式：文字顶部与图像上边缘保持 `max(8, int(h * 0.05))` 像素安全间距；
+     - 水平方向：严格居中对齐 `x = (w - text_w) // 2`；
+  4. **跨平台字体回退机制 (Font Fallback)**：
+     - 优先寻找 Windows 中文字体：`C:/Windows/Fonts/msyh.ttc`（微软雅黑）、`simhei.ttf`（黑体）；
+     - 备选加载系统通用中文字体或 Pillow 默认字体；若载入失败自动优雅降级，杜绝崩溃。
+
+### 2. 平台导出预设管理器 (`config/presets.py`)
+- **预设枚举与规格映射**：
+  ```python
+  PRESETS = {
+      "wechat": {
+          "label": "💬 微信表情包 (1:1, ≤500KB)",
+          "max_edge": 240,
+          "max_bytes": 500 * 1024,
+          "format": "GIF",
+          "delay_override": 100,  # 适度调快播放
+      },
+      "xiaohongshu": {
+          "label": "📱 小红书/社媒 (3:4 竖版)",
+          "max_edge": 1080,
+          "format": "GIF",
+      },
+      "hd_gif": {
+          "label": "🌟 原画超清 GIF",
+          "format": "GIF",
+      },
+      "webp": {
+          "label": "⚡ 高保真 WebP (高压缩比)",
+          "format": "WEBP",
+      }
+  }
+  ```
+
+### 3. Fluent UI 表现层与交互集成 (`ui/sidebar.py` & `ui/canvas.py`)
+- **配文设置卡片 (CardWidget)**：
+  - 放置于控制面板中间层；
+  - 包含配文单行输入框（`LineEdit`，带清除按钮与可见 Label）；
+  - 包含位置切换单选组（`RadioButton`：底部居中 / 顶部居中）；
+- **所见即所得联动**：
+  - 输入框 `textChanged` 信号实时触发画布 `canvas.set_caption(text, position)` 刷新；
+  - 动图播放与静止预览统一应用配文图层。
+
+---
+
+## 八、 v3.5+ 长期规划：Prompt 收集器与 Agent 闭环工作流技术架构
+
+### 1. 业务愿景与从 0 到 1 创作链路
+```text
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│   Agent 规划器  │ ────► │  Prompt 收集器  │ ────► │ GifCreater 切片 │ ────► │ 微信表情包交付  │
+│ 1句话灵感分步提炼 │       │ 结构化 CRUD/标签 │       │ 4x4网格/去黑边   │       │ 配文+≤500KB压缩 │
+└─────────────────┘       └─────────────────┘       └─────────────────┘       └─────────────────┘
+```
+
+### 2. Prompt 知识库数据契约 (`src/gifcreater/core/prompt_schema.py`)
+```json
+{
+  "id": "uuid-v4",
+  "title": "呆萌柴犬日常表情包 4 格分镜",
+  "model_target": "Midjourney v6",
+  "prompt": "4-panel comic strip, adorable shiba inu expressing 4 different emotions: laughing, crying, angry, sleeping, cute chibi style, white clean background --ar 1:1 --style raw",
+  "negative_prompt": "text, watermark, blurry, deformed",
+  "tags": ["柴犬", "表情包", "4格分镜", "二次元Q版"],
+  "created_at": "2026-09-18T10:00:00Z",
+  "updated_at": "2026-09-18T10:00:00Z"
+}
+```
+
+### 3. Agent 协议驱动生成流程 (`src/gifcreater/core/agent_engine.py`)
+- **五阶标准化流水线**：
+  1. `Intent Parser`：提炼用户输入的角色特征、情绪冲突与动势；
+  2. `Consistency Anchor`：固化发型、穿搭、色彩调色板等锚点关键词；
+  3. `Sequence Decomposer`：拆分为 1~16 帧或 2x2/3x3 连贯动作；
+  4. `Syntax Formatter`：根据目标引擎语法包装参数（如 `--ar`、`--v 6.0`、`--grid`）；
+  5. `Result Inspector`：语法质量与违规敏感词校验，持久化至本地 Prompt 库。
+
+---
+
+## 九、 变更与演进记录 (Changelog)
+- **2026-09-18 (v3.1 & v3.5+ 架构确立)**：完成表情包经典黑边白字配文叠加算法设计、多平台导出预设定义；建立 Prompt 收集器与 Agent 分镜生图工作流引擎的五阶架构规范。
+- **2026-09-18 (v3.0 交付完成)**：PyQt6 Fluent 客户端架构落地，完成无头核心与表现层解耦，达到 97.31% 单测覆盖率门禁。
+- **2026-09-17 (v3.0 规划阶段)**：确立六大核心文件夹层级规范与三层解耦体系。
+- **2026-09-11 (v2.1)**：引入 CI/CD 双门禁流水线与 Latest 滚动发布策略。
+- **2026-09-10 (v2.0)**：完成单工作台流水线与微信 ≤500KB 调色板自适应压缩算法。
