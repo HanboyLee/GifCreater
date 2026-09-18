@@ -4,7 +4,7 @@ a = Analysis(
     ['main.py'],
     pathex=['src'],
     binaries=[],
-    datas=[],
+    datas=[('resources', 'resources')],
     hiddenimports=[
         'qfluentwidgets',
         'PyQt6',

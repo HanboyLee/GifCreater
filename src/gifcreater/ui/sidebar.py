@@ -10,6 +10,8 @@ GifCreater 现代参数控制面板 (Control Sidebar)
 - 核心操作按钮 (一键拆解并合成、打开成品目录)
 """
 
+from typing import Optional
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -38,6 +40,7 @@ from qfluentwidgets import (
 )
 
 from ..config.presets import PRESETS, list_preset_items
+from ..config.theme_manager import ThemeManager
 from ..core.caption import CaptionConfig
 
 
@@ -66,53 +69,6 @@ class ControlSidebar(SingleDirectionScrollArea):
         self.caption_rotation: float = 0.0
         self.text_color_rgb: tuple = (255, 255, 255)
         self.stroke_color_rgb: tuple = (0, 0, 0)
-        self.setStyleSheet(
-            """
-            ControlSidebar {
-                background: transparent;
-                border: none;
-            }
-            CardWidget {
-                background-color: #272727;
-                border: 1px solid #3d3d3d;
-                border-radius: 8px;
-            }
-            SubtitleLabel {
-                color: #ffffff;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            BodyLabel {
-                color: #f0f0f0;
-                font-size: 12px;
-                font-weight: normal;
-            }
-            RadioButton {
-                color: #f0f0f0;
-                font-size: 12px;
-            }
-            RadioButton:hover {
-                color: #ffffff;
-            }
-            SpinBox {
-                background-color: #333333;
-                color: #ffffff;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 2px 6px;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            LineEdit {
-                background-color: #333333;
-                color: #ffffff;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 4px 8px;
-                font-size: 12px;
-            }
-            """
-        )
 
         container = QWidget()
         container.setStyleSheet("background: transparent;")
@@ -120,6 +76,9 @@ class ControlSidebar(SingleDirectionScrollArea):
         layout.setContentsMargins(12, 12, 18, 12)
         layout.setSpacing(12)
         self.setWidget(container)
+
+        # 挂载全局主题管理器监听
+        ThemeManager.get_instance().themeChanged.connect(self.apply_theme)
 
         # ---------------- 卡片 1: 网格切片配置 ----------------
         card_grid = CardWidget(container)
@@ -186,7 +145,6 @@ class ControlSidebar(SingleDirectionScrollArea):
             btn_deg = PushButton(f"{deg:+}°" if deg != 0 else "0°")
             btn_deg.setFixedHeight(24)
             btn_deg.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn_deg.setStyleSheet("font-size: 11px; padding: 2px 4px;")
             btn_deg.clicked.connect(lambda _, d=deg: self._set_rotation_angle(d))
             rot_quick_box.addWidget(btn_deg)
         layout_caption.addLayout(rot_quick_box)
@@ -253,7 +211,6 @@ class ControlSidebar(SingleDirectionScrollArea):
             b = PushButton(name)
             b.setFixedHeight(26)
             b.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            b.setStyleSheet("font-size: 11px; padding: 2px 2px;")
             b.clicked.connect(lambda _, x=rx, y=ry: self._set_position_ratio(x, y))
             grid_pos_layout.addWidget(b, r, c)
         layout_caption.addLayout(grid_pos_layout)
@@ -266,28 +223,24 @@ class ControlSidebar(SingleDirectionScrollArea):
         tpl_btn_classic = PushButton("🔥 经典黑白")
         tpl_btn_classic.setFixedHeight(28)
         tpl_btn_classic.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tpl_btn_classic.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_classic.clicked.connect(lambda: self._apply_style_template("classic"))
         template_grid.addWidget(tpl_btn_classic, 0, 0)
 
         tpl_btn_yellow = PushButton("⚡ 荧光亮黄")
         tpl_btn_yellow.setFixedHeight(28)
         tpl_btn_yellow.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tpl_btn_yellow.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_yellow.clicked.connect(lambda: self._apply_style_template("yellow"))
         template_grid.addWidget(tpl_btn_yellow, 0, 1)
 
         tpl_btn_danger = PushButton("🚨 高能爆红")
         tpl_btn_danger.setFixedHeight(28)
         tpl_btn_danger.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tpl_btn_danger.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_danger.clicked.connect(lambda: self._apply_style_template("danger"))
         template_grid.addWidget(tpl_btn_danger, 1, 0)
 
         tpl_btn_wm = PushButton("👻 半透水印")
         tpl_btn_wm.setFixedHeight(28)
         tpl_btn_wm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        tpl_btn_wm.setStyleSheet("font-size: 11px; font-weight: 600;")
         tpl_btn_wm.clicked.connect(lambda: self._apply_style_template("watermark"))
         template_grid.addWidget(tpl_btn_wm, 1, 1)
 
@@ -374,6 +327,7 @@ class ControlSidebar(SingleDirectionScrollArea):
         layout.addWidget(self.btn_open_output)
 
         layout.addStretch()
+        self.apply_theme()
 
     def _on_grid_changed(self):
         self.gridParamChanged.emit(
@@ -405,12 +359,34 @@ class ControlSidebar(SingleDirectionScrollArea):
     def _set_rotation_angle(self, deg: int):
         self.slider_rotation.setValue(deg)
 
+    def apply_theme(self, theme_name: Optional[str] = None):
+        """动态加载并应用高对比度主题样式"""
+        qss = ThemeManager.get_instance().get_theme_stylesheet()
+        self.setStyleSheet(qss)
+        self._update_color_buttons()
+
+    def _update_color_buttons(self):
+        """根据色彩相对感知亮度（ITU-R BT.601），动态设定文字/描边颜色挑选按钮的前景色"""
+        tc = self.text_color_rgb
+        lum_t = 0.299 * tc[0] + 0.587 * tc[1] + 0.114 * tc[2]
+        fg_t = "#000000" if lum_t > 140 else "#ffffff"
+        self.btn_text_color.setStyleSheet(
+            f"background-color: rgb({tc[0]},{tc[1]},{tc[2]}); color: {fg_t}; font-weight: bold; border-radius: 5px;"
+        )
+
+        sc = self.stroke_color_rgb
+        lum_s = 0.299 * sc[0] + 0.587 * sc[1] + 0.114 * sc[2]
+        fg_s = "#000000" if lum_s > 140 else "#ffffff"
+        self.btn_stroke_color.setStyleSheet(
+            f"background-color: rgb({sc[0]},{sc[1]},{sc[2]}); color: {fg_s}; font-weight: bold; border-radius: 5px;"
+        )
+
     def _pick_text_color(self):
         curr = QColor(*self.text_color_rgb)
         col = QColorDialog.getColor(curr, self, "选择文字颜色")
         if col.isValid():
             self.text_color_rgb = (col.red(), col.green(), col.blue())
-            self.btn_text_color.setStyleSheet(f"background-color: rgb({col.red()},{col.green()},{col.blue()}); color: {'#000' if col.lightness() > 128 else '#fff'};")
+            self._update_color_buttons()
             self._on_caption_changed()
 
     def _pick_stroke_color(self):
@@ -418,7 +394,7 @@ class ControlSidebar(SingleDirectionScrollArea):
         col = QColorDialog.getColor(curr, self, "选择描边颜色")
         if col.isValid():
             self.stroke_color_rgb = (col.red(), col.green(), col.blue())
-            self.btn_stroke_color.setStyleSheet(f"background-color: rgb({col.red()},{col.green()},{col.blue()}); color: {'#000' if col.lightness() > 128 else '#fff'};")
+            self._update_color_buttons()
             self._on_caption_changed()
 
     def _on_text_opacity_changed(self, val: int):
@@ -463,8 +439,7 @@ class ControlSidebar(SingleDirectionScrollArea):
             self.slider_text_opacity.setValue(35)
             self.slider_stroke_width.setValue(1)
 
-        self.btn_text_color.setStyleSheet(f"background-color: rgb({self.text_color_rgb[0]},{self.text_color_rgb[1]},{self.text_color_rgb[2]}); color: {'#000' if self.text_color_rgb[0] > 128 else '#fff'};")
-        self.btn_stroke_color.setStyleSheet(f"background-color: rgb({self.stroke_color_rgb[0]},{self.stroke_color_rgb[1]},{self.stroke_color_rgb[2]}); color: {'#000' if self.stroke_color_rgb[0] > 128 else '#fff'};")
+        self._update_color_buttons()
         self._on_caption_changed()
 
     def _on_caption_changed(self):

@@ -25,8 +25,10 @@ def main():
     app.setApplicationName("GifCreater")
     app.setOrganizationName("HanboyLee")
 
+    from src.gifcreater.config.theme_manager import ThemeManager, ThemeMode
+
     # 默认启用深色质感主题 (支持界面一键切换)
-    setTheme(Theme.DARK)
+    ThemeManager.get_instance().set_theme(ThemeMode.DARK)
 
     window = MainWindow()
     window.show()

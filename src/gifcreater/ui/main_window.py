@@ -40,6 +40,8 @@ from qfluentwidgets import (
     toggleTheme,
 )
 
+from ..config.presets import PRESETS
+from ..config.theme_manager import ThemeManager
 from ..core import (
     GridConfig,
     calculate_default_grid,
@@ -80,7 +82,6 @@ class MainWindow(MSFluentWindow):
         # 创建中央主微件
         self.central_widget = QWidget(self)
         self.central_widget.setObjectName("workshopInterface")
-        self.central_widget.setStyleSheet("#workshopInterface { background-color: #1a1a1a; }")
         self.main_layout = QVBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(16, 12, 16, 12)
         self.main_layout.setSpacing(10)
@@ -187,6 +188,10 @@ class MainWindow(MSFluentWindow):
 
         # 注册中央工作区到 Fluent 主窗口
         self.addSubInterface(self.central_widget, FIF.PHOTO, "动图工坊")
+
+        # 挂载全局主题状态监听并应用初始高对比度样式
+        ThemeManager.get_instance().themeChanged.connect(self._on_theme_changed)
+        self._on_theme_changed()
 
     # ---------------- 素材载入与拖拽处理 ----------------
 
@@ -351,4 +356,14 @@ class MainWindow(MSFluentWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(gifs_dir)))
 
     def _toggle_app_theme(self):
-        toggleTheme()
+        ThemeManager.get_instance().toggle_theme()
+
+    def _on_theme_changed(self, theme_name: Optional[str] = None):
+        mgr = ThemeManager.get_instance()
+        qss = mgr.get_theme_stylesheet()
+        self.central_widget.setStyleSheet(qss)
+        is_dark = mgr.is_dark()
+        self.btn_theme.setText("切换浅色" if is_dark else "切换深色")
+        self.label_filepath.setStyleSheet(f"color: {mgr.tokens.text_secondary}; font-size: 12px;")
+        self.label_frame_info.setStyleSheet(f"color: {mgr.tokens.text_primary}; font-weight: bold; font-size: 12px;")
+        self.label_status.setStyleSheet(f"color: {mgr.tokens.text_secondary}; font-size: 12px;")

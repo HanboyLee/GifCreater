@@ -24,6 +24,16 @@ from tests.fixtures.mock_images import (
 )
 
 
+@pytest.fixture(scope="session")
+def qapp():
+    """提供全局单例 QApplication"""
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    return app
+
+
 @pytest.fixture
 def dummy_grid_image_2x2():
     """标准 400x400 2x2 包含中心分割线的 RGB 测试图"""

@@ -8,6 +8,7 @@ GifCreater 配置与偏好管理包 (Configuration & Preferences)
 """
 
 from .presets import ExportPreset, PRESETS, DEFAULT_PRESET_KEY, get_preset, list_preset_items
+from .theme_manager import ThemeManager, ThemeMode, ThemeTokens
 
 __all__ = [
     "ExportPreset",
@@ -15,6 +16,9 @@ __all__ = [
     "DEFAULT_PRESET_KEY",
     "get_preset",
     "list_preset_items",
+    "ThemeManager",
+    "ThemeMode",
+    "ThemeTokens",
 ]
 
 try:

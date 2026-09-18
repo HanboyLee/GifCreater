@@ -397,7 +397,32 @@ GifCreater/
 
 ---
 
-## 十一、 变更与演进记录 (Changelog)
+## 十一、 v3.4 统一设计令牌与主题管理系统 (ThemeManager & High-Contrast Design Tokens)
+
+### 1. 主题架构设计哲学
+针对深色模式下因局部内联样式打断主题链导致按纽文字回退为系统黑色的缺陷，建立基于设计令牌（Design Tokens）的集中式主题管理系统 `ThemeManager`。
+
+### 2. 设计令牌定义规范 (`src/gifcreater/config/theme_manager.py`)
+| 语义令牌 Token | 深色模式 (Dark) | 浅色模式 (Light) | 语义与视觉作用 |
+| :--- | :--- | :--- | :--- |
+| `surface_bg` | `#18181b` | `#f4f4f5` | 主窗口最底层工作区背景 |
+| `card_bg` | `#27272a` | `#ffffff` | 参数控制卡片背景 |
+| `card_border` | `#3f3f46` | `#e4e4e7` | 卡片轮廓边框 |
+| `text_primary` | `#ffffff` | `#09090b` | 主标题、强调文字（保证 $\ge 12:1$ 对比度） |
+| `text_secondary`| `#a1a1aa` | `#71717a` | 次级标签与辅助提示文字 |
+| `btn_secondary_bg` | `#383838` | `#f0f0f0` | 角度快捷、罗盘网格、模板网格按钮背景 |
+| `btn_secondary_text`| `#f4f4f5` | `#18181b` | 次级按纽文字（强制高对比度，杜绝系统黑字穿帮） |
+| `btn_hover_border` | `#00bcd4` | `#0097a7` | 鼠标悬停高光边框 |
+
+### 3. 双模热重载与无缝切换管线
+- `ThemeManager` 统一管理全局暗黑/明亮主题状态；
+- 在用户触发主题切换时，向顶层窗口及所有子微件广播更新信号，动态重新加载对应主题的 QSS 样式表（`resources/themes/dark.qss` 与 `light.qss`）；
+- 彻底禁止在组件上声明仅含 `font-size` 而缺失 `color` 的内联 `setStyleSheet`，所有交互按钮统一绑定高对比度令牌。
+
+---
+
+## 十二、 变更与演进记录 (Changelog)
+- **2026-09-18 (v3.4 统一主题系统与高对比度设计令牌)**：新增 `ThemeManager` 与 `resources/themes/*.qss`，彻底解决深色背景黑色文字问题，实现深浅色无缝热重载。
 - **2026-09-18 (v3.3 自适应与滚动条避让)**：引入 `QSplitter` 弹性工作区与 `320px~480px` 侧边栏约束，增加 18px 滚动安全避让区，并将风格模板和罗盘归位升级为 `QGridLayout` 复合网格。
 - **2026-09-18 (v3.2 自由配文工作室)**：新增任意坐标拖拽图元 `DraggableCaptionItem`、-180°~180°双三次插值旋转、RGBA 双重着色与透明度滑块。
 - **2026-09-18 (v3.1 & v3.5+ 架构确立)**：完成表情包经典黑边白字配文叠加算法设计、多平台导出预设定义；建立 Prompt 收集器与 Agent 分镜生图工作流引擎的五阶架构规范。

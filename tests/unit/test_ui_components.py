@@ -18,15 +18,6 @@ from src.gifcreater.ui.main_window import MainWindow
 from tests.fixtures.mock_images import create_dummy_grid_image
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    """提供单例 QApplication"""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    return app
-
-
 def test_canvas_and_player(qapp):
     """测试可交互画布与原地动图播放器及配文联动"""
     canvas = InteractiveCanvas()
