@@ -38,6 +38,14 @@ MANIFEST
 # Local outputs & runtime files
 output/
 
+# Credentials — never commit API keys or secret blobs
+gifcreater-secrets.bin
+**/gifcreater-secrets.bin
+gifcreater-settings.json
+**/gifcreater-settings.json
+.env.*
+!.env.example
+
 # Test samples & temporary images (strictly keep out of git)
 tests/samples/
 tests/output/
