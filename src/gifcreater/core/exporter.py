@@ -12,6 +12,7 @@ from typing import List, Tuple, Optional, Union
 from PIL import Image
 
 from .caption import apply_caption_to_frames
+from .compressor import quantize_frames_for_gif
 
 __all__ = [
     "natural_sort_key",
@@ -91,17 +92,22 @@ def export_gif(
         im.resize(first_size, Image.Resampling.LANCZOS) if im.size != first_size else im
         for im in exp_frames
     ]
-    converted = [im.convert("RGB") if im.mode not in ("RGB", "P") else im for im in processed]
+    p_frames, trans_idx = quantize_frames_for_gif(processed, colors=256)
+    save_kwargs = {}
+    if trans_idx is not None:
+        save_kwargs["transparency"] = trans_idx
+        save_kwargs["disposal"] = 2
 
     buf = io.BytesIO()
-    converted[0].save(
+    p_frames[0].save(
         buf,
         format="GIF",
         save_all=True,
-        append_images=converted[1:],
+        append_images=p_frames[1:],
         duration=exp_durs,
         loop=loop,
         optimize=optimize,
+        **save_kwargs,
     )
     data = buf.getvalue()
 

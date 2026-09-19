@@ -79,6 +79,31 @@ def test_export_gif_boomerang_expansion():
         assert len(frames_short) == 2
 
 
+def test_export_gif_transparent_background():
+    """验证 export_gif 对透明 RGBA 帧的透明度保留与半透明边缘净化"""
+    frames = [
+        create_transparent_frame(width=60, height=60, shape_color=(200, i * 50, 0, 255))
+        for i in range(3)
+    ]
+    # 在第 1 帧边缘添加半透明微弱杂色
+    frames[0].putpixel((10, 10), (200, 0, 0, 40))  # 应当被二值化清洗为透明
+    frames[0].putpixel((20, 20), (200, 0, 0, 180)) # 应当被保留为不透明
+
+    data = export_gif(frames, [100] * 3)
+    with Image.open(io.BytesIO(data)) as im:
+        assert im.info.get("transparency") is not None
+        # 验证背景透明
+        rgba_f0 = im.convert("RGBA")
+        assert rgba_f0.getpixel((0, 0))[3] == 0
+        # 验证微弱半透明 (alpha=40) 被二值化为透明，消除杂色黑圈
+        assert rgba_f0.getpixel((10, 10))[3] == 0
+        # 验证主体 (alpha=180) 保留为不透明
+        assert rgba_f0.getpixel((20, 20))[3] == 255
+        # 验证 disposal=2 属性
+        for f in ImageSequence.Iterator(im):
+            assert f.disposal_method == 2
+
+
 def test_export_webp_magic_bytes_and_alpha(tmp_path):
     """验证 WebP 动图导出、RIFF 文件头魔数及透明度保留"""
     frames = [create_transparent_frame(width=60, height=60, shape_color=(200, i * 50, 0, 255)) for i in range(3)]

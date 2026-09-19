@@ -13,10 +13,93 @@ src/gifcreater/core/compressor.py
 """
 
 import io
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 from PIL import Image
 
-__all__ = ["compress_wechat_gif"]
+__all__ = ["compress_wechat_gif", "quantize_frames_for_gif"]
+
+
+def quantize_frames_for_gif(
+    frames: List[Image.Image],
+    colors: int = 256,
+    alpha_threshold: int = 128,
+) -> Tuple[List[Image.Image], Optional[int]]:
+    """
+    针对 GIF 格式的自适应调色板量化与透明度处理引擎：
+    - 若图像不包含透明通道，返回高质量统一 RGB 量化帧，透明索引为 None；
+    - 若图像包含 Alpha 透明通道：
+      1. 执行半透明像素二值化与边缘净化（消除黑边与光晕杂色）；
+      2. 提取全序列样本构建统一全局调色板，预留专属透明索引（trans_idx）；
+      3. 每帧注入 transparency 与 disposal=2（防止多帧残留溢出）。
+    """
+    if not frames:
+        return [], None
+
+    has_alpha = any(
+        im.mode in ("RGBA", "LA") and (im.getchannel("A").getextrema()[0] < 255)
+        for im in frames
+    )
+
+    if not has_alpha:
+        p_frames = [
+            im.convert("P", palette=Image.Palette.ADAPTIVE, colors=colors)
+            if im.mode != "P"
+            else im
+            for im in frames
+        ]
+        return p_frames, None
+
+    w, h = frames[0].size
+    n = len(frames)
+    sample_step = max(1, n // 16)
+    sampled_indices = list(range(0, n, sample_step))[:16]
+    sample_count = len(sampled_indices)
+
+    montage = Image.new(
+        "RGB",
+        (w * min(sample_count, 4), h * ((sample_count + 3) // 4)),
+        (0, 0, 0),
+    )
+    cleaned_rgb: List[Image.Image] = []
+    alpha_masks: List[Image.Image] = []
+
+    for i, im in enumerate(frames):
+        rgba = im.convert("RGBA")
+        r, g, b, a = rgba.split()
+        clean_a = a.point(lambda v: 255 if v >= alpha_threshold else 0)
+        rgb = Image.merge("RGB", (r, g, b))
+        black = Image.new("RGB", (w, h), (0, 0, 0))
+        c_rgb = Image.composite(rgb, black, clean_a)
+        cleaned_rgb.append(c_rgb)
+        alpha_masks.append(clean_a)
+        if i in sampled_indices:
+            s_idx = sampled_indices.index(i)
+            col = s_idx % 4
+            row = s_idx // 4
+            montage.paste(c_rgb, (col * w, row * h))
+
+    safe_colors = max(2, min(colors, 256)) - 1
+    global_p = montage.quantize(colors=safe_colors, method=Image.Quantize.MEDIANCUT)
+    pal = global_p.getpalette()[: safe_colors * 3]
+    trans_idx = safe_colors
+    full_pal = pal + [0, 0, 0]
+    full_pal += [0] * (768 - len(full_pal))
+
+    p_frames = []
+    trans_layer = Image.new("P", (w, h), trans_idx)
+    trans_layer.putpalette(full_pal)
+
+    for c_rgb, a in zip(cleaned_rgb, alpha_masks):
+        p_img = c_rgb.quantize(palette=global_p, dither=Image.Dither.NONE)
+        p_img.putpalette(full_pal)
+        mask = a.point(lambda v: 255 if v == 0 else 0)
+        final_p = Image.composite(trans_layer, p_img, mask)
+        final_p.putpalette(full_pal)
+        final_p.info["transparency"] = trans_idx
+        final_p.info["disposal"] = 2
+        p_frames.append(final_p)
+
+    return p_frames, trans_idx
 
 
 def compress_wechat_gif(
@@ -95,11 +178,13 @@ def compress_wechat_gif(
     while True:
         # 阶梯试探
         for colors in palette_ladder:
-            p_frames = [
-                im.convert("P", palette=Image.Palette.ADAPTIVE, colors=colors)
-                for im in curr_frames
-            ]
+            p_frames, trans_idx = quantize_frames_for_gif(curr_frames, colors=colors)
             buf = io.BytesIO()
+            save_kwargs = {}
+            if trans_idx is not None:
+                save_kwargs["transparency"] = trans_idx
+                save_kwargs["disposal"] = 2
+
             p_frames[0].save(
                 buf,
                 format="GIF",
@@ -108,6 +193,7 @@ def compress_wechat_gif(
                 duration=curr_durs,
                 loop=loop,
                 optimize=True,
+                **save_kwargs,
             )
             data = buf.getvalue()
             if len(data) <= max_size_bytes:

@@ -127,7 +127,7 @@ def test_compress_wechat_gif_mode_conversions():
 
 
 def test_compress_wechat_gif_rgba_input():
-    """验证 RGBA 带透明通道图片输入"""
+    """验证 RGBA 带透明通道图片输入及透明通道保留"""
     rgba_frames = [
         create_transparent_frame(width=100, height=100, shape_color=(200, i * 40, 50, 255))
         for i in range(3)
@@ -136,6 +136,13 @@ def test_compress_wechat_gif_rgba_input():
     assert len(res) <= MAX_WECHAT_BYTES
     with Image.open(io.BytesIO(res)) as im:
         assert im.format == "GIF"
+        # 验证透明度索引与背景透明保留
+        assert im.info.get("transparency") is not None
+        assert im.convert("RGBA").getpixel((0, 0))[3] == 0
+        assert im.convert("RGBA").getpixel((50, 50))[3] == 255
+        # 验证 disposal=2 帧刷新模式
+        for f in ImageSequence.Iterator(im):
+            assert f.disposal_method == 2
 
 
 def test_compress_wechat_gif_durations_variants():
