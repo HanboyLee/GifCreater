@@ -119,6 +119,9 @@ def test_control_sidebar(qapp):
     assert sidebar.caption_rotation == -15.0
     assert cfg_captured[-1].rotation_deg == -15.0
 
+    sidebar.slider_font_size.setValue(36)
+    assert sidebar.get_caption_config().font_size == 36
+
     # 九宫格快捷对齐
     sidebar._set_position_ratio(0.5, 0.12)
     assert sidebar.caption_pos_y_ratio == 0.12
@@ -172,10 +175,12 @@ def test_canvas_caption_drag_interaction(qapp):
 
 
 def test_prompt_page_save_list(qapp, tmp_path):
+    from src.gifcreater.config.secrets import FakeProtector, SecretStore
     from src.gifcreater.core.prompt_store import PromptStore
     from src.gifcreater.ui.prompt_page import PromptPage
 
-    page = PromptPage(PromptStore(tmp_path / "lib.sqlite"))
+    secrets = SecretStore(tmp_path / "sec.bin", protector=FakeProtector())
+    page = PromptPage(PromptStore(tmp_path / "lib.sqlite"), secrets=secrets)
     page._set_grid(2, 2)
     page.edit_hint.setText("眨眼")
     page.edit_prompt.setPlainText("blink sheet")
@@ -266,6 +271,12 @@ def test_main_window_headless(qapp, tmp_path):
     win.sidebar.btn_reset_grid.click()
     assert win.current_grid is not None
     assert win.current_grid.col_lines == [30, 60, 90]
+    assert win.sidebar.switch_crop.isChecked() is False
+
+    assert win.prompt_page is not None
+    assert win.settings_page is not None
+    win._toggle_app_theme()
+    win._on_theme_changed("light")
 
     assert win.prompt_page is not None
     assert win.settings_page is not None

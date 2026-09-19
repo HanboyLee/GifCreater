@@ -29,8 +29,9 @@ def test_parse_real_documents():
     roadmap_ver = parse_roadmap_baseline(roadmap_path)
     req_ver = parse_requirements_latest_version(req_path)
 
-    assert roadmap_ver.startswith("v3.4")
-    assert req_ver.startswith("v3.4")
+    assert roadmap_ver.startswith("v3.")
+    assert req_ver.startswith("v3.")
+    assert roadmap_ver == req_ver
     assert check_docs_synchronization(root) is True
 
 

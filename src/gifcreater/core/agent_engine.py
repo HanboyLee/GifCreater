@@ -9,7 +9,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
-from .prompt_schema import validate_grid
+from .prompt_schema import layout_lock_paragraph, validate_grid
 
 SYSTEM_PROMPT = """You write the ACTION part of an animation sprite-sheet prompt.
 A program will prepend a locked grid-layout paragraph. You must NOT invent layout.
@@ -23,24 +23,6 @@ Rules:
 - Do not name commercial image products.
 - No markdown fences, no JSON, no commentary.
 """
-
-
-def layout_lock_paragraph(rows: int, cols: int) -> str:
-    """切片引擎需要的几何约束，由代码写入，不交给模型发挥。"""
-    validate_grid(rows, cols)
-    cells = rows * cols
-    return (
-        f"A single image that is a perfect {rows} by {cols} animation sprite sheet for automatic cropping. "
-        f"Exactly {cells} rectangular cells in a regular matrix: {rows} rows and {cols} columns. "
-        "Every cell is the same width and the same height. "
-        "The grid fills the entire image edge to edge. "
-        "CRITICAL: do not draw any grid lines, gutters, borders, boxes, or picture-frames between or around cells. "
-        "No black lines, no white lines, no panel outlines. Cells share one seamless uniform background. "
-        "Separate poses only by equal spacing of the character; the background is continuous. "
-        "Keep each pose centered in its imaginary cell with empty background padding so nothing touches a cell edge. "
-        "No overlapping, no comic layout, no collage, no extra empty cells. "
-        "Read left to right, then top to bottom."
-    )
 
 
 def assemble_image_prompt(brief: GenerationBrief, action_text: str) -> str:

@@ -34,9 +34,10 @@ class PromptStoreError(Exception):
 
 
 class PromptStore:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, auto_seed: bool = False):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.auto_seed = auto_seed
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
@@ -48,9 +49,51 @@ class PromptStore:
         try:
             with self._connect() as conn:
                 conn.executescript(_SCHEMA)
+                if self.auto_seed:
+                    count = conn.execute("SELECT COUNT(*) FROM prompts").fetchone()[0]
+                    if count == 0:
+                        self.seed_defaults(conn)
         except sqlite3.DatabaseError as exc:
             self._backup_corrupt()
             raise PromptStoreError("收藏库损坏，已备份为 .bak") from exc
+
+    def seed_defaults(self, conn: Optional[sqlite3.Connection] = None) -> int:
+        """植入内置精选分镜范例。返回成功插入的记录数。"""
+        from .prompt_schema import get_default_presets
+
+        presets = get_default_presets()
+        now = utc_now_iso()
+
+        def _do_insert(c: sqlite3.Connection) -> int:
+            inserted = 0
+            for item in presets:
+                pid = str(uuid4())
+                c.execute(
+                    """
+                    INSERT INTO prompts (id, title, prompt, negative, image_model, aspect, grid, tags_json, notes, created_at, updated_at, schema_version)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        pid,
+                        item["title"],
+                        item["prompt"],
+                        item.get("negative", ""),
+                        "",
+                        "",
+                        item["grid"],
+                        json.dumps(item.get("tags", []), ensure_ascii=False),
+                        item.get("notes", ""),
+                        now,
+                        now,
+                    ),
+                )
+                inserted += 1
+            return inserted
+
+        if conn is not None:
+            return _do_insert(conn)
+        with self._connect() as c:
+            return _do_insert(c)
 
     def _backup_corrupt(self) -> None:
         if self.db_path.exists():
