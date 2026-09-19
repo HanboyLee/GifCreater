@@ -50,14 +50,12 @@ class PromptStore:
             with self._connect() as conn:
                 conn.executescript(_SCHEMA)
                 if self.auto_seed:
-                    count = conn.execute("SELECT COUNT(*) FROM prompts").fetchone()[0]
-                    if count == 0:
-                        self.seed_defaults(conn)
+                    self.seed_defaults(conn, check_existing=True)
         except sqlite3.DatabaseError as exc:
             self._backup_corrupt()
             raise PromptStoreError("收藏库损坏，已备份为 .bak") from exc
 
-    def seed_defaults(self, conn: Optional[sqlite3.Connection] = None) -> int:
+    def seed_defaults(self, conn: Optional[sqlite3.Connection] = None, check_existing: bool = True) -> int:
         """植入内置精选分镜范例。返回成功插入的记录数。"""
         from .prompt_schema import get_default_presets
 
@@ -67,6 +65,12 @@ class PromptStore:
         def _do_insert(c: sqlite3.Connection) -> int:
             inserted = 0
             for item in presets:
+                if check_existing:
+                    exists = c.execute(
+                        "SELECT 1 FROM prompts WHERE title = ?", (item["title"],)
+                    ).fetchone()
+                    if exists:
+                        continue
                 pid = str(uuid4())
                 c.execute(
                     """

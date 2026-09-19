@@ -49,11 +49,14 @@ def test_missing_id_invalid():
 def test_default_presets():
     from src.gifcreater.core.prompt_schema import DEFAULT_PROMPT_PRESETS, get_default_presets
 
-    assert len(DEFAULT_PROMPT_PRESETS) == 5
+    assert len(DEFAULT_PROMPT_PRESETS) == 7
     presets = get_default_presets()
-    assert len(presets) == 5
+    assert len(presets) == 7
     for p in presets:
         assert p["title"]
         assert p["prompt"].startswith("A single image")
         assert "Action:" in p["prompt"]
         assert "x" in p["grid"]
+    grids = [p["grid"] for p in presets]
+    assert "4x6" in grids
+    assert "6x4" in grids

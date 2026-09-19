@@ -90,6 +90,20 @@ DEFAULT_PROMPT_PRESETS: List[dict[str, Any]] = [
         "tags": ["搞怪", "职场", "2x3"],
         "action": "A comical tired office worker at a desk experiencing funny despair. Panel 1: Staring at laptop screen with flat expression. Panel 2: Eyes suddenly widening in shock. Panel 3: Raising both hands to grab sides of head. Panel 4: Frantically shaking head with comical sweat drops flying. Panel 5: Mouth wide open in exaggerated silent scream. Panel 6: Softly resting forehead flat on the desk in funny defeat.",
     },
+    {
+        "title": "可爱橘猫蓄力飞扑蝴蝶 (4×6)",
+        "rows": 4,
+        "cols": 6,
+        "tags": ["萌宠", "猫咪", "4x6", "连环动作"],
+        "action": "A cute chubby orange tabby cat hunting a glowing butterfly in a dynamic 24-frame sequence. Row 1 panels 1 to 6: Crouching low, airplane ears, wiggling rear hips slowly then rapidly to build jump power. Row 2 panels 7 to 12: Explosive leap forward, stretching body horizontally mid-air at peak flight arc, front paws reaching. Row 3 panels 13 to 18: Diving down, clamping paws together on the ground, cute fluffy forward roll to absorb impact, sliding into seated pose looking down at closed paws. Row 4 panels 19 to 24: Paws slowly opening, glowing butterfly fluttering out unharmed, cat eyes widening with delighted open-mouth meow, upright tail swishing happily, easing smoothly back to starting crouch for a seamless animation loop.",
+    },
+    {
+        "title": "Q版小魔女发射流星大招 (6×4)",
+        "rows": 6,
+        "cols": 4,
+        "tags": ["二次元", "魔法", "6x4", "特效"],
+        "action": "A cute chibi anime witch girl casting an ultimate magic spell in 24 sequential frames. Rows 1-2 panels 1 to 8: Twirling star wand, summoning a spinning glowing magical crest beneath boots. Rows 3-4 panels 9 to 16: Chanting with wand raised high, gathering a bright radiant orb of energy, wind blowing cape and large witch hat. Rows 5-6 panels 17 to 24: Sweeping wand forward unleashing a massive sparkling heart comet beam, followed by sparkling dust clearing, and cute witch winking with double peace signs pose.",
+    },
 ]
 
 
