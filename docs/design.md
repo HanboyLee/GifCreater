@@ -560,9 +560,34 @@ if sys.platform == "win32":
 4. **时序无残留刷新与元数据绑定**：
    每帧显式注入 `transparency=trans_idx` 与 `disposal=2`，确保微信表情包播放完全透明且无残影。
 
+## 二十、 Prompt 工作台列表超长省略与标签/删除管理设计 (List Eliding, Deletion & Tag Filtering)
+
+### 1. 列表超长智能截断与悬浮提示 (Smart Text Eliding & Tooltip)
+- **痛点**：左侧 `ListWidget` 宽度固定（268px），当 Prompt 标题包含长句或丰富描述时，文字会水平超出容器或被硬性裁切，不仅破坏 Fluent 视觉规整度，也影响信息辨识。
+- **技术实现**：
+  - 激活 Qt 原生文字省略模式：`self.list_widget.setTextElideMode(Qt.TextElideMode.ElideRight)`；
+  - 禁用水平滚动条防止跳动：`self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)`；
+  - 为每个列表项挂载全名及标签 ToolTip：`item.setToolTip(f"{rec.title} ({grid})\n标签: {tags}")`，用户鼠标悬停即可快速获取完整语义。
+
+### 2. Prompt 数据安全删除与防误触保障 (Safe Deletion & Anti-Accidental Deletion)
+- **双通道触发机制**：
+  - **底部显式按钮**：在左栏底部操作栏新增「删除」按钮，选中项有效时可点击；
+  - **右键上下文菜单**：列表项右键弹出「🗑️ 删除此 Prompt」菜单项。
+- **内置预设保护与二次确认**：
+  - 系统内置预设（`rec.notes == "官方推荐经典分镜范例"` 或特定标识）受保护，禁止删除以防库被清空；
+  - 自建或修改的 Prompt 在执行删除前，通过 Fluent `MessageBox` 提示确认；
+  - 删除执行成功后，联动刷新列表及标签库，自动将选中焦点平滑推移至相邻或第一条记录。
+
+### 3. 多维标签分类与动态过滤 (Tag Classification & Dynamic Filtering)
+- **数据结构映射**：复用 `PromptRecord.tags`（`List[str]`）及 SQLite 表中 `tags_json` 字段；
+- **编辑输入**：在右侧 Prompt 基本信息区增设「标签 (Tags)」输入框，支持逗号或空格分隔标签；保存时自动规范化清洗；
+- **快速分类过滤**：在左侧搜索栏下方增设标签筛选器（`ComboBox`），首项为「全部标签」，其余项由当前库内现有全部不重复标签动态聚合；
+- **双重检索联动**：列表加载时由关键字输入（Title / Prompt）与选中标签联合过滤，实现秒级定位。
+
 ---
 
-## 二十、 变更与演进记录 (Changelog)
+## 二十一、 变更与演进记录 (Changelog)
+- **2026-09-20 (Prompt 工作台列表超长省略与标签/删除管理)**：为收藏列表启用 `TextElideMode.ElideRight` 文本溢出省略与悬浮气泡全称提示；新增底部操作栏与右键菜单双通道删除能力并配备 Fluent 二次确认；实现多维标签输入与下拉分类快速筛选。
 - **2026-09-20 (GIF 动图透明通道保留与边缘抗光晕毛刺修复)**：彻底根治 RGBA 导出 GIF 时背景变成黑色以及边缘产生黑边光晕瑕疵的问题，构建统一全局量化调色板、透明通道专属槽位与 disposal=2 时序刷新机制。
 - **2026-09-20 (背景模式四态解耦与概念修正)**：修正将透明与纯色混同为“纯色透明底”的逻辑缺陷，正式解耦为「透明背景 (表情包推荐)」、「纯色背景」、「场景背景」与「自由不限」四态，保证交互概念与提示词语义精确严谨。
 - **2026-09-20 (分镜提示词背景模式与防穿模安全护城河规范升级)**：设计并落地背景模式受控选择，同时在代码锁中注入 60%~70% 紧凑角色比例与 15% 安全护城河硬规则，彻底根除切片跨格串图与背景杂质痛点。

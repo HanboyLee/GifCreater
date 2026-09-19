@@ -26,6 +26,28 @@ def test_crud_and_query(tmp_path):
     assert store.get(a.id) is None
 
 
+def test_tags_and_filter(tmp_path):
+    store = PromptStore(tmp_path / "library.sqlite")
+    store.create(title="猫咪", prompt="cat", rows=2, cols=2, tags=["萌宠", "动物"])
+    store.create(title="小狗", prompt="dog", rows=2, cols=2, tags=["萌宠", "汪星人"])
+    store.create(title="魔法", prompt="magic", rows=3, cols=3, tags=["二次元"])
+
+    all_tags = store.get_all_tags()
+    assert sorted(all_tags) == ["二次元", "动物", "汪星人", "萌宠"]
+
+    pet_records = store.list(tag="萌宠")
+    assert len(pet_records) == 2
+    titles = [r.title for r in pet_records]
+    assert "猫咪" in titles and "小狗" in titles
+
+    magic_records = store.list(tag="二次元")
+    assert len(magic_records) == 1
+    assert magic_records[0].title == "魔法"
+
+    none_records = store.list(tag="不存在的标签")
+    assert len(none_records) == 0
+
+
 def test_duplicate_and_export_import(tmp_path):
     store = PromptStore(tmp_path / "library.sqlite")
     rec = store.create(title="眨眼", prompt="blink", rows=2, cols=2)

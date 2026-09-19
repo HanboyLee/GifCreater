@@ -108,7 +108,9 @@ class PromptStore:
         tags = json.loads(row["tags_json"] or "[]")
         return PromptRecord.from_dict({**dict(row), "tags": tags})
 
-    def list(self, query: Optional[str] = None) -> List[PromptRecord]:
+    def list(
+        self, query: Optional[str] = None, tag: Optional[str] = None
+    ) -> List[PromptRecord]:
         sql = "SELECT * FROM prompts ORDER BY updated_at DESC"
         params: tuple = ()
         if query and query.strip():
@@ -120,7 +122,24 @@ class PromptStore:
             params = (q, q)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
-        return [self._row_to_record(r) for r in rows]
+        records = [self._row_to_record(r) for r in rows]
+        if tag and tag.strip():
+            target_tag = tag.strip()
+            records = [r for r in records if target_tag in r.tags]
+        return records
+
+    def get_all_tags(self) -> List[str]:
+        tags_set = set()
+        with self._connect() as conn:
+            rows = conn.execute("SELECT tags_json FROM prompts").fetchall()
+        for r in rows:
+            try:
+                for t in json.loads(r["tags_json"] or "[]"):
+                    if t and str(t).strip():
+                        tags_set.add(str(t).strip())
+            except Exception:
+                pass
+        return sorted(tags_set)
 
     def get(self, record_id: str) -> Optional[PromptRecord]:
         with self._connect() as conn:
@@ -169,8 +188,16 @@ class PromptStore:
             )
         return record
 
-    def create(self, *, title: str, prompt: str, rows: int, cols: int) -> PromptRecord:
-        rec = PromptRecord.create(title=title, prompt=prompt, rows=rows, cols=cols)
+    def create(
+        self,
+        *,
+        title: str,
+        prompt: str,
+        rows: int,
+        cols: int,
+        tags: Optional[List[str]] = None,
+    ) -> PromptRecord:
+        rec = PromptRecord.create(title=title, prompt=prompt, rows=rows, cols=cols, tags=tags)
         return self.save(rec)
 
     def delete(self, record_id: str) -> bool:
