@@ -182,14 +182,27 @@ def test_prompt_page_save_list(qapp, tmp_path):
     secrets = SecretStore(tmp_path / "sec.bin", protector=FakeProtector())
     page = PromptPage(PromptStore(tmp_path / "lib.sqlite"), secrets=secrets)
 
-    # 验证快捷网格预设按钮完整性（包含 4×6 与 6×4）
+    # 验证快捷网格预设按钮精简为黄金4强（3×3, 4×4, 4×6, 6×4），冷门移至手动微调
     labels = [btn.text() for btn in page.grid_buttons]
-    assert "4×6" in labels
-    assert "6×4" in labels
+    assert labels == ["3×3", "4×4", "4×6", "6×4"]
+    assert "1×6" not in labels
+    assert "2×2" not in labels
+
+    btn_3x3 = next(b for b in page.grid_buttons if b.text() == "3×3")
+    btn_3x3.click()
+    assert page.spin_rows.value() == 3
+    assert page.spin_cols.value() == 3
+
+    btn_4x4 = next(b for b in page.grid_buttons if b.text() == "4×4")
+    btn_4x4.click()
+    assert page.spin_rows.value() == 4
+    assert page.spin_cols.value() == 4
+
     btn_4x6 = next(b for b in page.grid_buttons if b.text() == "4×6")
     btn_4x6.click()
     assert page.spin_rows.value() == 4
     assert page.spin_cols.value() == 6
+
     btn_6x4 = next(b for b in page.grid_buttons if b.text() == "6×4")
     btn_6x4.click()
     assert page.spin_rows.value() == 6
