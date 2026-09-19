@@ -187,3 +187,82 @@ def test_url_error():
             messages=[],
             opener=opener,
         )
+
+
+def test_fetch_remote_models_openai_format(monkeypatch):
+    from src.gifcreater.core.agent_engine import fetch_remote_models
+
+    payload = {
+        "data": [
+            {"id": "openai/gpt-4o"},
+            {"id": "anthropic/claude-3.5-sonnet"},
+            {"id": "deepseek/deepseek-r1"},
+        ]
+    }
+
+    def fake_urlopen(req, timeout=None):
+        assert "models" in req.full_url
+        assert req.headers["Authorization"] == "Bearer sk-test"
+        return _FakeResp(payload)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    models = fetch_remote_models("https://openrouter.ai/api/v1", api_key="sk-test")
+    assert models == ["anthropic/claude-3.5-sonnet", "deepseek/deepseek-r1", "openai/gpt-4o"]
+
+
+def test_fetch_remote_models_ollama_format(monkeypatch):
+    from src.gifcreater.core.agent_engine import fetch_remote_models
+
+    payload = {
+        "models": [
+            {"name": "llama3.2:latest"},
+            {"name": "qwen2.5:latest"},
+        ]
+    }
+
+    def fake_urlopen(req, timeout=None):
+        return _FakeResp(payload)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    models = fetch_remote_models("http://localhost:11434/v1")
+    assert models == ["llama3.2:latest", "qwen2.5:latest"]
+
+
+def test_fetch_remote_models_errors(monkeypatch):
+    from src.gifcreater.core.agent_engine import fetch_remote_models
+
+    # 1. 未配置 base_url
+    with pytest.raises(AgentError, match="未配置 Base URL"):
+        fetch_remote_models("")
+
+    # 2. HTTP 401
+    def fake_401(req, timeout=None):
+        raise HTTPError("https://x", 401, "unauthorized", hdrs=None, fp=BytesIO())
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_401)
+    with pytest.raises(AgentError, match="认证失败"):
+        fetch_remote_models("https://api.openai.com/v1", api_key="bad")
+
+    # 3. 网络故障
+    def fake_net_err(req, timeout=None):
+        raise URLError("offline")
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_net_err)
+    with pytest.raises(AgentError, match="网络连接失败"):
+        fetch_remote_models("https://api.openai.com/v1")
+
+    # 4. 超时
+    def fake_timeout(req, timeout=None):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_timeout)
+    with pytest.raises(AgentError, match="超时"):
+        fetch_remote_models("https://api.openai.com/v1")
+
+    # 5. 空列表
+    def fake_empty(req, timeout=None):
+        return _FakeResp({"data": []})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_empty)
+    with pytest.raises(AgentError, match="未获取到任何可用模型"):
+        fetch_remote_models("https://api.openai.com/v1")

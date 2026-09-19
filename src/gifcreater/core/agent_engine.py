@@ -168,3 +168,53 @@ class StoryboardPipeline:
             timeout=timeout,
         )
         return GenerationResult(full_prompt=assemble_image_prompt(brief, text))
+
+
+def fetch_remote_models(base_url: str, api_key: str = "", timeout: float = 10.0) -> List[str]:
+    """从 Provider 的 /models 端点获取模型列表。"""
+    url = (base_url or "").strip().rstrip("/")
+    if not url:
+        raise AgentError("未配置 Base URL")
+    endpoint = f"{url}/models"
+    headers = {
+        "User-Agent": "GifCreater/3.5 (Desktop)",
+        "Accept": "application/json",
+    }
+    if api_key and api_key.strip():
+        headers["Authorization"] = f"Bearer {api_key.strip()}"
+
+    req = urllib.request.Request(endpoint, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise AgentError(_http_message(exc.code)) from None
+    except urllib.error.URLError:
+        raise AgentError("网络连接失败，请检查 Base URL 或网络设置") from None
+    except TimeoutError:
+        raise AgentError("获取模型列表超时") from None
+    except json.JSONDecodeError:
+        raise AgentError("服务返回数据非有效 JSON") from None
+
+    raw_list: list[Any] = []
+    if isinstance(data, dict):
+        if "data" in data and isinstance(data["data"], list):
+            raw_list = data["data"]
+        elif "models" in data and isinstance(data["models"], list):
+            raw_list = data["models"]
+    elif isinstance(data, list):
+        raw_list = data
+
+    model_ids = set()
+    for item in raw_list:
+        if isinstance(item, dict):
+            mid = item.get("id") or item.get("name")
+            if mid and isinstance(mid, str):
+                model_ids.add(mid.strip())
+        elif isinstance(item, str) and item.strip():
+            model_ids.add(item.strip())
+
+    result = sorted(model_ids)
+    if not result:
+        raise AgentError("未获取到任何可用模型")
+    return result

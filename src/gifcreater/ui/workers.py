@@ -248,3 +248,30 @@ class RefineWorker(QThread):
         except Exception as exc:
             self.refineFailed.emit(str(exc) or "完善失败")
 
+
+class ModelFetchWorker(QThread):
+    """异步获取远程 Provider 官方可用模型列表。"""
+
+    fetchFinished = pyqtSignal(list)
+    fetchFailed = pyqtSignal(str)
+
+    def __init__(self, base_url: str, api_key: str = "", parent=None):
+        super().__init__(parent)
+        self.base_url = base_url
+        self.api_key = api_key
+
+    def run(self):
+        from ..core.agent_engine import AgentError, fetch_remote_models
+
+        try:
+            if self.isInterruptionRequested():
+                return
+            models = fetch_remote_models(self.base_url, self.api_key)
+            if self.isInterruptionRequested():
+                return
+            self.fetchFinished.emit(models)
+        except AgentError as exc:
+            self.fetchFailed.emit(str(exc))
+        except Exception as exc:
+            self.fetchFailed.emit(str(exc) or "获取模型失败")
+

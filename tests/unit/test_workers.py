@@ -112,3 +112,34 @@ def test_export_worker_empty_frames(qapp):
 
     assert len(failed_msgs) == 1
     assert "没有可导出的有效帧" in failed_msgs[0]
+
+
+def test_model_fetch_worker(qapp, monkeypatch):
+    """测试 ModelFetchWorker 异步获取模型列表"""
+    from src.gifcreater.ui.workers import ModelFetchWorker
+
+    # 1. 成功测试
+    monkeypatch.setattr(
+        "src.gifcreater.core.agent_engine.fetch_remote_models",
+        lambda base_url, api_key: ["model-x", "model-y"],
+    )
+    worker = ModelFetchWorker("https://api.openai.com/v1", "sk-test")
+    fetched = []
+    worker.fetchFinished.connect(lambda m: fetched.append(m))
+    worker.run()
+    assert len(fetched) == 1
+    assert fetched[0] == ["model-x", "model-y"]
+
+    # 2. 失败测试
+    from src.gifcreater.core.agent_engine import AgentError
+
+    def fail_fetch(base_url, api_key):
+        raise AgentError("网络不可达")
+
+    monkeypatch.setattr("src.gifcreater.core.agent_engine.fetch_remote_models", fail_fetch)
+    fail_worker = ModelFetchWorker("https://bad.url")
+    errors = []
+    fail_worker.fetchFailed.connect(lambda e: errors.append(e))
+    fail_worker.run()
+    assert len(errors) == 1
+    assert "网络不可达" in errors[0]

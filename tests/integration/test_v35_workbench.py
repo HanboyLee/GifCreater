@@ -215,3 +215,63 @@ def test_on_new_prompt_resets_state(qapp, tmp_path):
     page._on_select(None)
     assert page._current_id is None
 
+
+def test_settings_page_fetch_models_and_lock(qapp, tmp_path, monkeypatch):
+    from src.gifcreater.ui.settings_page import SettingsPage
+
+    settings = SettingsManager(tmp_path / "gifcreater-settings.json")
+    secrets = SecretStore(tmp_path / "gifcreater-secrets.bin", protector=FakeProtector())
+    page = SettingsPage(settings=settings, secrets=secrets)
+
+    # 1. 初始状态检查
+    assert hasattr(page, "btn_fetch_models")
+    assert page.btn_fetch_models.isEnabled() is True
+
+    # 2. 模拟点击获取最新模型
+    mock_models = [
+        "openai/gpt-4o",
+        "anthropic/claude-3.5-sonnet",
+        "deepseek/deepseek-r1",
+        "google/gemini-2.5-pro",
+    ]
+    monkeypatch.setattr(
+        "src.gifcreater.core.agent_engine.fetch_remote_models",
+        lambda base_url, api_key: mock_models,
+    )
+    page.edit_base.setText("https://openrouter.ai/api/v1")
+    page.edit_key.setText("sk-or-v1-test")
+    page._on_fetch_models()
+
+    # 等待子线程结束
+    if hasattr(page, "_fetch_worker") and page._fetch_worker:
+        page._fetch_worker.wait(5000)
+    QApplication.processEvents()
+
+    # 3. 验证下拉列表包含拉取到的所有模型
+    combo_items = [page.combo_model.itemText(i) for i in range(page.combo_model.count())]
+    for m in mock_models:
+        assert m in combo_items
+
+    # 4. 实时搜索过滤
+    page.search_model.setText("r1")
+    assert page.combo_model.count() >= 1
+    assert "deepseek/deepseek-r1" in page.combo_model.itemText(0)
+
+    # 5. 选中并锁定保存
+    page.combo_model.setCurrentText("deepseek/deepseek-r1")
+    page._save_all()
+    saved_cfg = settings.load()
+    assert saved_cfg.model_id == "deepseek/deepseek-r1"
+
+    # 6. 获取失败分支测试
+    def mock_fail(base_url, api_key):
+        from src.gifcreater.core.agent_engine import AgentError
+        raise AgentError("连接被拒绝")
+
+    monkeypatch.setattr("src.gifcreater.core.agent_engine.fetch_remote_models", mock_fail)
+    page._on_fetch_models()
+    if hasattr(page, "_fetch_worker") and page._fetch_worker:
+        page._fetch_worker.wait(5000)
+    QApplication.processEvents()
+    assert page.btn_fetch_models.isEnabled() is True
+

@@ -1,6 +1,6 @@
 # 🗺️ GifCreater Studio 产品演进路线图 (Product Roadmap)
 
-> **当前基线版本**：`v3.5.0 (Windows Native Stable)`  
+> **当前基线版本**：`v3.5.1 (Windows Native Stable)`  
 > **文档维护原则**：本文档定义 GifCreater 的长期技术演进、场景扩展与版本发布节奏，作为后续所有功能迭代与立项规格书（`spec/`）的顶层指南。
 
 ---
