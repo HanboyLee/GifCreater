@@ -42,7 +42,7 @@ class PromptPage(QWidget):
     ):
         super().__init__(parent)
         self.setObjectName("promptInterface")
-        self.store = store or PromptStore(default_library_path())
+        self.store = store or PromptStore(default_library_path(), auto_seed=True)
         self.settings = settings or SettingsManager()
         self.secrets = secrets or SecretStore()
         self._current_id: Optional[str] = None

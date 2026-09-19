@@ -36,6 +36,81 @@ def validate_grid(rows: int, cols: int) -> None:
         raise ValueError(f"行列须在 {GRID_MIN}–{GRID_MAX}")
 
 
+def layout_lock_paragraph(rows: int, cols: int) -> str:
+    """切片引擎需要的几何约束，由代码写入，不交给模型发挥。"""
+    validate_grid(rows, cols)
+    cells = rows * cols
+    return (
+        f"A single image that is a perfect {rows} by {cols} animation sprite sheet for automatic cropping. "
+        f"Exactly {cells} rectangular cells in a regular matrix: {rows} rows and {cols} columns. "
+        "Every cell is the same width and the same height. "
+        "The grid fills the entire image edge to edge. "
+        "CRITICAL: do not draw any grid lines, gutters, borders, boxes, or picture-frames between or around cells. "
+        "No black lines, no white lines, no panel outlines. Cells share one seamless uniform background. "
+        "Separate poses only by equal spacing of the character; the background is continuous. "
+        "Keep each pose centered in its imaginary cell with empty background padding so nothing touches a cell edge. "
+        "No overlapping, no comic layout, no collage, no extra empty cells. "
+        "Read left to right, then top to bottom."
+    )
+
+
+DEFAULT_PROMPT_PRESETS: List[dict[str, Any]] = [
+    {
+        "title": "Q版角色眨眼微笑 (2×2)",
+        "rows": 2,
+        "cols": 2,
+        "tags": ["表情包", "二次元", "2x2"],
+        "action": "A cute chibi cat-eared character. Panel 1: Standing facing forward with bright open eyes and gentle smile. Panel 2: Eyes half closed in a relaxed blink. Panel 3: Eyes completely closed with a happy arc smile and tiny blush. Panel 4: Eyes opening back up to bright neutral expression.",
+    },
+    {
+        "title": "黄色卫衣少年挥手打招呼 (3×3)",
+        "rows": 3,
+        "cols": 3,
+        "tags": ["问候", "打招呼", "3x3"],
+        "action": "A cheerful boy in a bright yellow hoodie waving hand. Panel 1: Neutral standing pose looking forward. Panel 2: Raising right arm slightly. Panel 3: Right hand raised near head level, open palm. Panel 4: Hand waving slightly to the left. Panel 5: Hand waving back to the right. Panel 6: Hand waving left again with a wide joyful smile. Panel 7: Beginning to lower right arm. Panel 8: Arm halfway down. Panel 9: Returned to original relaxed standing pose.",
+    },
+    {
+        "title": "贪吃小仓鼠啃葵花籽 (1×6)",
+        "rows": 1,
+        "cols": 6,
+        "tags": ["萌宠", "动物", "1x6"],
+        "action": "A chubby fluffy hamster eating a sunflower seed. Panel 1: Sitting upright holding a sunflower seed with both paws. Panel 2: Bringing the seed up to mouth. Panel 3: Nibbling rapidly with puffed cheeks. Panel 4: Chewing happily with closed eyes. Panel 5: Swallowing the seed with cheeks deflating. Panel 6: Satisfied smile, paws resting on round tummy.",
+    },
+    {
+        "title": "卡通小恐龙侧面循环快走 (4×4)",
+        "rows": 4,
+        "cols": 4,
+        "tags": ["连环画", "步态", "4x4"],
+        "action": "A friendly green cartoon dinosaur walking in a side view walk-cycle. 16 continuous sequential frames of smooth walking: left foot forward contact, recoil dip, passing position, high point extension, right foot contact, recoil, passing, high point, repeating seamlessly with tail bobbing gently up and down.",
+    },
+    {
+        "title": "职场打工人抱头崩溃抓狂 (2×3)",
+        "rows": 2,
+        "cols": 3,
+        "tags": ["搞怪", "职场", "2x3"],
+        "action": "A comical tired office worker at a desk experiencing funny despair. Panel 1: Staring at laptop screen with flat expression. Panel 2: Eyes suddenly widening in shock. Panel 3: Raising both hands to grab sides of head. Panel 4: Frantically shaking head with comical sweat drops flying. Panel 5: Mouth wide open in exaggerated silent scream. Panel 6: Softly resting forehead flat on the desk in funny defeat.",
+    },
+]
+
+
+def get_default_presets() -> List[dict[str, Any]]:
+    presets = []
+    for item in DEFAULT_PROMPT_PRESETS:
+        r, c = int(item["rows"]), int(item["cols"])
+        full_prompt = f"{layout_lock_paragraph(r, c)}\n\nAction: {item['action']}"
+        presets.append(
+            {
+                "title": item["title"],
+                "prompt": full_prompt,
+                "grid": format_grid(r, c),
+                "tags": list(item["tags"]),
+                "negative": "",
+                "notes": "官方推荐经典分镜范例",
+            }
+        )
+    return presets
+
+
 @dataclass
 class PromptRecord:
     id: str

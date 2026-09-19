@@ -44,3 +44,16 @@ def test_missing_id_invalid():
     rec.id = ""
     with pytest.raises(ValueError):
         rec.validate()
+
+
+def test_default_presets():
+    from src.gifcreater.core.prompt_schema import DEFAULT_PROMPT_PRESETS, get_default_presets
+
+    assert len(DEFAULT_PROMPT_PRESETS) == 5
+    presets = get_default_presets()
+    assert len(presets) == 5
+    for p in presets:
+        assert p["title"]
+        assert p["prompt"].startswith("A single image")
+        assert "Action:" in p["prompt"]
+        assert "x" in p["grid"]

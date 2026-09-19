@@ -69,3 +69,28 @@ def test_corrupt_db_backup(tmp_path):
     with pytest.raises(PromptStoreError):
         PromptStore(db)
     assert (tmp_path / "library.sqlite.bak").exists()
+
+
+def test_auto_seed_default_presets(tmp_path):
+    db = tmp_path / "seeded.sqlite"
+    store = PromptStore(db, auto_seed=True)
+    items = store.list()
+    assert len(items) == 5
+    titles = [it.title for it in items]
+    assert any("2×2" in t for t in titles)
+    assert any("3×3" in t for t in titles)
+    assert any("1×6" in t for t in titles)
+    assert any("4×4" in t for t in titles)
+    assert any("2×3" in t for t in titles)
+
+    # Reopening should not re-seed duplicate records
+    store2 = PromptStore(db, auto_seed=True)
+    assert len(store2.list()) == 5
+
+    # Manual seeding into empty db
+    manual_db = tmp_path / "manual.sqlite"
+    manual_store = PromptStore(manual_db, auto_seed=False)
+    assert len(manual_store.list()) == 0
+    count = manual_store.seed_defaults()
+    assert count == 5
+    assert len(manual_store.list()) == 5
