@@ -36,19 +36,42 @@ def validate_grid(rows: int, cols: int) -> None:
         raise ValueError(f"行列须在 {GRID_MIN}–{GRID_MAX}")
 
 
-def layout_lock_paragraph(rows: int, cols: int) -> str:
-    """切片引擎需要的几何约束，由代码写入，不交给模型发挥。"""
+def layout_lock_paragraph(rows: int, cols: int, bg_mode: str = "transparent") -> str:
+    """切片引擎需要的几何约束与背景约束，由代码写入，不交给模型发挥。"""
     validate_grid(rows, cols)
     cells = rows * cols
+
+    mode = (bg_mode or "transparent").lower().strip()
+    if mode == "scene":
+        bg_clause = (
+            "All cells share one continuous, seamless scenic background environment. "
+            "The scenery, props, and lighting must stay consistent across all panels while character performs action. "
+        )
+    elif mode == "auto":
+        bg_clause = "Cells share one seamless uniform background without borders. "
+    else:
+        bg_clause = (
+            "Background MUST be a pure solid flat white background (#FFFFFF). "
+            "Isolated character sticker style, clean die-cut silhouette, no ground shadows, "
+            "no environment, no background objects, ready for transparent cutout. "
+        )
+
+    anti_bleed_clause = (
+        "CRITICAL COMPACT SCALE: keep the character small and compact, strictly occupying no more than 60% to 70% of each cell height and width. "
+        "Wide safety margins: maintain at least 15% wide empty blank buffer margin on all four borders (top, bottom, left, right) inside every cell. "
+        "ABSOLUTELY NO BLEED-OVER: character body, limbs, hair, weapons, tools, clothing, and effects must NEVER cross cell boundaries or enter adjacent panels. "
+    )
+
     return (
         f"A single image that is a perfect {rows} by {cols} animation sprite sheet for automatic cropping. "
         f"Exactly {cells} rectangular cells in a regular matrix: {rows} rows and {cols} columns. "
         "Every cell is the same width and the same height. "
         "The grid fills the entire image edge to edge. "
         "CRITICAL: do not draw any grid lines, gutters, borders, boxes, or picture-frames between or around cells. "
-        "No black lines, no white lines, no panel outlines. Cells share one seamless uniform background. "
-        "Separate poses only by equal spacing of the character; the background is continuous. "
-        "Keep each pose centered in its imaginary cell with empty background padding so nothing touches a cell edge. "
+        "No black lines, no white lines, no panel outlines. "
+        f"{bg_clause}"
+        f"{anti_bleed_clause}"
+        "Separate poses only by equal spacing of the character. "
         "No overlapping, no comic layout, no collage, no extra empty cells. "
         "Read left to right, then top to bottom."
     )

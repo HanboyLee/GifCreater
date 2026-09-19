@@ -47,11 +47,16 @@ def test_refine_with_mock_writes_prompt(qapp, tmp_path, monkeypatch):
     secrets = SecretStore(tmp_path / "gifcreater-secrets.bin", protector=FakeProtector())
     secrets.save_key("sk-test")
     page = PromptPage(store=store, settings=settings, secrets=secrets)
+    assert page.get_bg_mode() == "transparent"
+    page.set_bg_mode("scene")
+    assert page.get_bg_mode() == "scene"
+
     page.spin_rows.setValue(3)
     page.spin_cols.setValue(3)
     page.edit_hint.setText("黄帽衫小人挥手")
     page._on_refine()
     assert page._refine_worker is not None
+    assert page._refine_worker.bg_mode == "scene"
     assert page.btn_refine.text() == "完善中..."
     assert page.btn_refine.isEnabled() is False
     assert not page.refine_progress.isHidden()

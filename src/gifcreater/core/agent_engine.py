@@ -17,6 +17,9 @@ Rules:
 - Output only natural-language action: who the character is, and what happens in each cell in order.
 - Cell count MUST equal rows*cols. Same character, clothes, hair, body in every cell.
 - Sequential motion, left-to-right then top-to-bottom.
+- Keep all actions, poses, and effects tightly contained within the character's local space. Do not describe oversized projectile trails, sprawling horizontal leaps, or wide effects that cross cell borders.
+- If background is transparent/solid, DO NOT describe any environment, floors, trees, furniture, or cast shadows. Focus exclusively on character actions.
+- If background is scenic, keep environmental scenery coherent and stationary across all panels.
 - Do not mention comic pages, frames, gutters, grid lines, stamps, or collages.
 - Do not mention extra empty cells or irregular panel sizes.
 - Natural language only. NEVER use Midjourney/Flux/SD flags such as --ar, --v, --stylize, --grid, (word:1.3).
@@ -27,7 +30,8 @@ Rules:
 
 def assemble_image_prompt(brief: GenerationBrief, action_text: str) -> str:
     action = sanitize_completion(action_text)
-    return f"{layout_lock_paragraph(brief.rows, brief.cols)}\n\nAction: {action}"
+    bg_mode = getattr(brief, "bg_mode", "transparent")
+    return f"{layout_lock_paragraph(brief.rows, brief.cols, bg_mode=bg_mode)}\n\nAction: {action}"
 
 
 class AgentError(Exception):
@@ -40,6 +44,7 @@ class GenerationBrief:
     rows: int
     cols: int
     current_prompt: str = ""
+    bg_mode: str = "transparent"
 
 
 @dataclass
@@ -50,8 +55,16 @@ class GenerationResult:
 def build_user_message(brief: GenerationBrief) -> str:
     validate_grid(brief.rows, brief.cols)
     cells = brief.rows * brief.cols
+    bg_mode = (getattr(brief, "bg_mode", None) or "transparent").lower()
+    bg_desc = {
+        "transparent": "Isolated sticker on pure solid white background (zero environment/props)",
+        "scene": "Continuous environmental scenic background across panels",
+        "auto": "Natural background",
+    }.get(bg_mode, "Isolated sticker on pure solid white background")
+
     parts = [
         f"Grid: {brief.rows}x{brief.cols} ({cells} panels).",
+        f"Background style: {bg_desc}.",
         f"Idea: {brief.inspiration.strip() or 'expressive character animation'}",
     ]
     if brief.current_prompt.strip():

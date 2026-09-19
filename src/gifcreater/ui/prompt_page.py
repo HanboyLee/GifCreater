@@ -6,6 +6,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QFileDialog,
     QHBoxLayout,
     QListWidgetItem,
@@ -22,6 +23,7 @@ from qfluentwidgets import (
     PlainTextEdit,
     PrimaryPushButton,
     PushButton,
+    RadioButton,
     SpinBox,
     SubtitleLabel,
 )
@@ -108,6 +110,23 @@ class PromptPage(QWidget):
         pills.addWidget(self.spin_cols)
         pills.addStretch()
         g.addLayout(pills)
+
+        g.addWidget(BodyLabel("背景模式"))
+        bg_row = QHBoxLayout()
+        self.rb_bg_transparent = RadioButton("🟢 纯色透明底 (表情包推荐)")
+        self.rb_bg_scene = RadioButton("🔵 场景环境 (连贯背景)")
+        self.rb_bg_auto = RadioButton("⚪ 自由不限")
+        self.rb_bg_transparent.setChecked(True)
+        self.bg_group = QButtonGroup(self)
+        self.bg_group.addButton(self.rb_bg_transparent, 0)
+        self.bg_group.addButton(self.rb_bg_scene, 1)
+        self.bg_group.addButton(self.rb_bg_auto, 2)
+        bg_row.addWidget(self.rb_bg_transparent)
+        bg_row.addWidget(self.rb_bg_scene)
+        bg_row.addWidget(self.rb_bg_auto)
+        bg_row.addStretch()
+        g.addLayout(bg_row)
+
         g.addWidget(BodyLabel("提示"))
         hint_row = QHBoxLayout()
         self.edit_hint = LineEdit()
@@ -177,6 +196,22 @@ class PromptPage(QWidget):
     def _set_grid(self, rows: int, cols: int):
         self.spin_rows.setValue(rows)
         self.spin_cols.setValue(cols)
+
+    def get_bg_mode(self) -> str:
+        if self.rb_bg_scene.isChecked():
+            return "scene"
+        if self.rb_bg_auto.isChecked():
+            return "auto"
+        return "transparent"
+
+    def set_bg_mode(self, mode: str):
+        mode = (mode or "transparent").lower().strip()
+        if mode == "scene":
+            self.rb_bg_scene.setChecked(True)
+        elif mode == "auto":
+            self.rb_bg_auto.setChecked(True)
+        else:
+            self.rb_bg_transparent.setChecked(True)
 
     def reload_list(self):
         q = self.search.text()
@@ -277,6 +312,7 @@ class PromptPage(QWidget):
             base_url=cfg.base_url,
             api_key=key,
             model=cfg.model_id,
+            bg_mode=self.get_bg_mode(),
             parent=self,
         )
         self._refine_worker.refineFinished.connect(self._on_refine_ok)

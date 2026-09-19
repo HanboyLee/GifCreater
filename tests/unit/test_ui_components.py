@@ -208,6 +208,19 @@ def test_prompt_page_save_list(qapp, tmp_path):
     assert page.spin_rows.value() == 6
     assert page.spin_cols.value() == 4
 
+    # 验证背景模式三态单选控件
+    assert page.rb_bg_transparent.isChecked() is True
+    assert page.get_bg_mode() == "transparent"
+
+    page.rb_bg_scene.click()
+    assert page.get_bg_mode() == "scene"
+
+    page.rb_bg_auto.click()
+    assert page.get_bg_mode() == "auto"
+
+    page.set_bg_mode("transparent")
+    assert page.get_bg_mode() == "transparent"
+
     page._set_grid(2, 2)
     page.edit_hint.setText("眨眼")
     page.edit_prompt.setPlainText("blink sheet")

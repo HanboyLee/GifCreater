@@ -21,6 +21,9 @@ from src.gifcreater.core.agent_engine import (
 def test_system_prompt_forbids_mj_flags():
     assert "--ar" in SYSTEM_PROMPT
     assert "NEVER" in SYSTEM_PROMPT
+    assert "tightly contained" in SYSTEM_PROMPT
+    assert "cross cell borders" in SYSTEM_PROMPT
+    assert "transparent/solid" in SYSTEM_PROMPT
 
 
 def test_layout_lock_is_sliceable_grid():
@@ -29,21 +32,27 @@ def test_layout_lock_is_sliceable_grid():
     assert "sprite sheet" in text
     assert "do not draw any grid lines" in text
     assert "picture-frames" in text or "picture-frame" in text
+    assert "CRITICAL COMPACT SCALE" in text
 
 
 def test_assemble_image_prompt_keeps_code_layout():
-    brief = GenerationBrief(inspiration="挥手", rows=2, cols=2)
+    brief = GenerationBrief(inspiration="挥手", rows=2, cols=2, bg_mode="scene")
     out = assemble_image_prompt(brief, "just waving")
     assert out.startswith("A single image")
     assert "2 by 2" in out
     assert "just waving" in out
+    assert "continuous, seamless scenic background environment" in out
 
 
 def test_build_user_message_counts_panels():
-    msg = build_user_message(GenerationBrief(inspiration="挥手", rows=3, cols=3, current_prompt="old"))
+    msg = build_user_message(GenerationBrief(inspiration="挥手", rows=3, cols=3, current_prompt="old", bg_mode="scene"))
     assert "3x3" in msg
     assert "9 panels" in msg
     assert "old" in msg
+    assert "Continuous environmental scenic background" in msg
+
+    msg_trans = build_user_message(GenerationBrief(inspiration="挥手", rows=2, cols=2, bg_mode="transparent"))
+    assert "Isolated sticker on pure solid white background" in msg_trans
 
 
 def test_sanitize_fences():

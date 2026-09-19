@@ -208,6 +208,7 @@ class RefineWorker(QThread):
         base_url: str,
         api_key: str,
         model: str,
+        bg_mode: str = "transparent",
         parent=None,
     ):
         super().__init__(parent)
@@ -218,6 +219,7 @@ class RefineWorker(QThread):
         self.base_url = base_url
         self.api_key = api_key
         self.model = model
+        self.bg_mode = bg_mode
 
     def run(self):
         from ..core.agent_engine import AgentError, GenerationBrief, StoryboardPipeline
@@ -232,6 +234,7 @@ class RefineWorker(QThread):
                     current_prompt=self.current_prompt,
                     rows=self.rows,
                     cols=self.cols,
+                    bg_mode=self.bg_mode,
                 ),
                 base_url=self.base_url,
                 api_key=self.api_key,
