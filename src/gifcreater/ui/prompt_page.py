@@ -83,10 +83,19 @@ class PromptPage(QWidget):
         g = QVBoxLayout(grid_card)
         g.addWidget(BodyLabel("网格"))
         pills = QHBoxLayout()
-        for r, c, label in ((2, 2, "2×2"), (3, 3, "3×3"), (1, 6, "1×6"), (4, 4, "4×4")):
+        self.grid_buttons = []
+        for r, c, label in (
+            (2, 2, "2×2"),
+            (3, 3, "3×3"),
+            (1, 6, "1×6"),
+            (4, 4, "4×4"),
+            (4, 6, "4×6"),
+            (6, 4, "6×4"),
+        ):
             btn = PushButton(label)
             btn.clicked.connect(lambda _=False, rr=r, cc=c: self._set_grid(rr, cc))
             pills.addWidget(btn)
+            self.grid_buttons.append(btn)
         pills.addWidget(BodyLabel("行"))
         self.spin_rows = SpinBox()
         self.spin_rows.setRange(1, 20)

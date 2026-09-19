@@ -181,6 +181,20 @@ def test_prompt_page_save_list(qapp, tmp_path):
 
     secrets = SecretStore(tmp_path / "sec.bin", protector=FakeProtector())
     page = PromptPage(PromptStore(tmp_path / "lib.sqlite"), secrets=secrets)
+
+    # 验证快捷网格预设按钮完整性（包含 4×6 与 6×4）
+    labels = [btn.text() for btn in page.grid_buttons]
+    assert "4×6" in labels
+    assert "6×4" in labels
+    btn_4x6 = next(b for b in page.grid_buttons if b.text() == "4×6")
+    btn_4x6.click()
+    assert page.spin_rows.value() == 4
+    assert page.spin_cols.value() == 6
+    btn_6x4 = next(b for b in page.grid_buttons if b.text() == "6×4")
+    btn_6x4.click()
+    assert page.spin_rows.value() == 6
+    assert page.spin_cols.value() == 4
+
     page._set_grid(2, 2)
     page.edit_hint.setText("眨眼")
     page.edit_prompt.setPlainText("blink sheet")
