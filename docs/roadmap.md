@@ -1,6 +1,6 @@
 # 🗺️ GifCreater Studio 产品演进路线图 (Product Roadmap)
 
-> **当前基线版本**：`v3.4.3 (Windows Native Stable)`  
+> **当前基线版本**：`v3.5.0 (Windows Native Stable)`  
 > **文档维护原则**：本文档定义 GifCreater 的长期技术演进、场景扩展与版本发布节奏，作为后续所有功能迭代与立项规格书（`spec/`）的顶层指南。
 
 ---
@@ -19,16 +19,16 @@
 ## 二、 版本演进全景里程碑 (Version Milestones)
 
 ```text
-  【v3.0~v3.4 基线】        【v3.5 灵感闭环】       【v3.6 吞吐互转】       【v4.0 本地端侧AI】
-  Fluent重构/无头解耦   ──> Prompt收集器与知识库 ──> 多图批量处理流水线 ──> 纯本地离线智能抠图
-  配文旋转/平台预设         5步Agent生图提示词      视频/动图双向互转(MP4)    光流法智能运动补帧
-  波谷吸附/保真/图标        一键复制与分镜生态      帧反转与重映射滤镜      APNG/现代格式矩阵
-  (已完成全量交付)          (当前推进中)            (中景目标)              (远景目标)
+  【v3.0~v3.5 基线】        【v3.6 吞吐互转】       【v4.0 本地端侧AI】
+  Fluent重构/无头解耦   ──> 多图批量处理流水线 ──> 纯本地离线智能抠图
+  配文旋转/平台预设         视频/动图双向互转(MP4)    光流法智能运动补帧
+  Prompt工作台/Jev门禁      帧反转与重映射滤镜      APNG/现代格式矩阵
+  (已完成全量交付)          (中景目标)              (远景目标)
 ```
 
 ---
 
-### 📍 v3.0 ~ v3.4 (Current Baseline - Stable) —— 现代表现层、核心算法与交付体验闭环 (已完成交付)
+### 📍 v3.0 ~ v3.5 (Current Baseline - Stable) —— 现代表现层、核心算法、Prompt 工作台与交付体验闭环 (已完成交付)
 
 - [x] **v3.0 现代桌面客户端体验升级 (Fluent UI & Headless Core)**：
   - [x] 彻底淘汰旧 Tkinter 单脚本，解耦为纯无头核心算法模块；
@@ -46,22 +46,13 @@
   - [x] **v3.4.1 帧间隔保真与微信往复修复**：消除微信 120ms 截断与尾帧抹平，支持 GIF89a 10ms 量化对齐，全预设支持 Boomerang 往复；
   - [x] **v3.4.2 智能网格线投影波谷吸附**：投影能量积分波谷中位线（Centerline）智能识别分镜缝隙，自动居中对齐；
   - [x] **v3.4.3 官方品牌图标与 Windows 桌面原生挂载**：「极简双态几何切片」官方 Logo，16~256px 全尺寸 ICO，任务栏独立进程与 PyInstaller 内嵌徽标。
+- [x] **v3.5 Prompt 工作台与自然语言分镜 Agent (Prompt Workbench & Jev Semantic Gate)**：
+  - [x] **v3.5.0 本地离线工作台与收藏库**：左侧三页导航（工坊 / Prompt / 设置）、SQLite3 主存、网格快捷+自定义行列（1~20）、横排主题持久化与 JSON/MD 导出；
+  - [x] **v3.5.1 设置 API 与分镜完善 Agent**：OpenRouter 兼容自然语言分镜完善、Windows DPAPI 独立密钥存储、TypeSafe Jev 语义决策与验车门禁。
 
 ---
 
-### 📍 v3.5 (Next Horizon) —— Prompt 收集器与 Agent 生图工作流引擎 (推进中 / 规划启动)
-**目标**：打通用户创作分镜动图“从一句话灵感到最终动图成品”的从 0 到 1 完整闭环。
-
-1. **Prompt 收集器与知识库 (Prompt Collector & Knowledge Base)**：
-   - 结构化增删改查 (CRUD)：支持收藏、编辑正向词、负向词、适用模型（Midjourney / Flux / SDXL）、网格语法（`--grid 2x2`）；
-   - 标签化风格检索（二次元、像素风、黏土风、3D写实）与本地 JSON/Markdown 导入导出。
-2. **Agent API 智能规划与 Prompt 链生成 (Agent Workflow Engine)**：
-   - 本地多模型 Agent API 灵活接入（OpenAI / Claude / Gemini / DeepSeek 等，配置与 Key 100% 本地存储）；
-   - 标准化 5 步提示词生成管线：灵感输入 ➔ 角色/风格锚定 ➔ 分镜时序动作分解 ➔ 目标生图模型语法封装 ➔ 最终交付一键复制。
-
----
-
-### 📍 v3.6 (Future Expansion) —— 批量处理吞吐与视频格式互通 (中景目标)
+### 📍 v3.6 (Next Horizon) —— 批量处理吞吐与视频格式互通 (中景目标)
 **目标**：解决大批量素材处理的生产力瓶颈，实现流水线式高吞吐生产与视频互通。
 
 1. **批量拖拽与多任务切片队列 (Batch Processing Pipeline)**：

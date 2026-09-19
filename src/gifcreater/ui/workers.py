@@ -194,3 +194,54 @@ class ExportWorker(QThread):
         except Exception as e:
             self.exportFailed.emit(str(e))
 
+
+class RefineWorker(QThread):
+    refineFinished = pyqtSignal(str)
+    refineFailed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        inspiration: str,
+        current_prompt: str,
+        rows: int,
+        cols: int,
+        base_url: str,
+        api_key: str,
+        model: str,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.inspiration = inspiration
+        self.current_prompt = current_prompt
+        self.rows = rows
+        self.cols = cols
+        self.base_url = base_url
+        self.api_key = api_key
+        self.model = model
+
+    def run(self):
+        from ..core.agent_engine import AgentError, GenerationBrief, StoryboardPipeline
+
+        try:
+            if self.isInterruptionRequested():
+                return
+            pipeline = StoryboardPipeline()
+            result = pipeline.run(
+                GenerationBrief(
+                    inspiration=self.inspiration,
+                    current_prompt=self.current_prompt,
+                    rows=self.rows,
+                    cols=self.cols,
+                ),
+                base_url=self.base_url,
+                api_key=self.api_key,
+                model=self.model,
+            )
+            if self.isInterruptionRequested():
+                return
+            self.refineFinished.emit(result.full_prompt)
+        except AgentError as exc:
+            self.refineFailed.emit(str(exc))
+        except Exception:
+            self.refineFailed.emit("完善失败")
+

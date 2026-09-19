@@ -2,6 +2,10 @@
 
 本文件是面向所有接手此代码仓库的 AI 编码代理（Agent）的法定操作规范。所有进入本项目的 AI 必须严格无条件遵守本文件制定的工作边界、研发流程与质量门禁。
 
+### 决策与计划必须调用 TypeSafe skill
+
+在**方案讨论、实现计划、架构取舍**，或在「纯代码 / 生成模型 / 结构化判断」之间做选择时，必须先加载并遵循 skill **`typesafe-ai`**（专案法定路径：`.agent/skills/typesafe-ai/SKILL.md`，备用路径：`~/.grok/skills/typesafe-ai/SKILL.md`）。按该 skill：读 [live docs](https://docs.typesafe.ai/llms.txt)，从产品要显示/选中/交出的结果倒推判断；规则、计算、精确查找留在代码；语义常识用 Choice / Noul / Score，而不是再写一套 prompt-and-parse。禁止把 TypeSafe 教程或 SDK 细节复制进本文件。拼写级小修补不必调用。新增或修改「完善 / Prompt 导入 / 任何从模型输出里抠字段」的代码前，同样必须先走 `typesafe-ai`。切图、压缩、Fluent 布局、覆盖率与提交规范仍走 `.agent/rules/` 对应条目，不必调用本 skill。
+
 ---
 
 ## 1. 边界限制与行为红线 (Boundaries & Constraints)
@@ -13,6 +17,7 @@
    - **严禁向 Git 提交大体积媒体文件与测试素材**（如图片样本、视频、切片过程文件、`ChatGPT Image*`、`tests/samples/` 等）。
    - **严禁向 Git 提交本地构建产物**（如 `*.exe`、`*.zip`、`build/`、`dist/` 等二进制或打包中间件）。
    - 运行产生的临时输出文件、缓存（如 `output/`、`__pycache__/`）必须严格被 Git 忽略。
+   - **严禁向 Git / GitHub 提交任何 API Key、访问令牌、密码或密钥文件**（含 `gifcreater-secrets.bin`、`.env`、明文 Key）。测试连接与完善只用本机密文；提交前必须确认暂存区没有密钥。
 3. **文档管理统一收口原则**：
    - **所有专案文档统一在 `docs/`（需求与设计）、专案根目录 `spec/`（立项与规格书）以及 `.agent/rules/`（模块化 AI 规则库）目录下进行集中管理**。
    - 根目录下除规范入口文件（`README.md`、`ARCHITECTURE.md`、`AGENTS.md`、环境/打包配置文件）外，严禁随意创建散落的 `.md` 或其他格式文档。
@@ -31,6 +36,7 @@
 
 ### 2.1 大 / 中型功能或架构改动 (Major / Feature Changes)
 - **第一步：先讨论，严禁直接动代码**
+  - 讨论与计划阶段必须先调用 skill **`typesafe-ai`**（见文首），再与用户确认方案。
   - 在修改任何业务代码之前，必须先与用户（或开发者）进行充分的方案讨论、思路汇报与确认。
   - 在未经讨论并获得用户明确同意之前，**绝对不能执行任何代码编写或修改操作**。
 - **第二步：更新需求与设计文档及根目录架构说明**

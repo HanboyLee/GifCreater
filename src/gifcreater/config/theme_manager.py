@@ -123,7 +123,10 @@ class ThemeManager(QObject):
         # 降级备选内联样式
         tokens = DARK_TOKENS if target == ThemeMode.DARK else LIGHT_TOKENS
         return f"""
-        #workshopInterface {{ background-color: {tokens.surface_bg}; }}
+        #workshopInterface, #promptInterface, #settingsInterface {{ background-color: {tokens.surface_bg}; }}
+        ListWidget, QListWidget {{ background-color: {tokens.card_bg}; color: {tokens.text_primary}; border: 1px solid {tokens.card_border}; border-radius: 6px; }}
+        ListWidget::item, QListWidget::item {{ color: {tokens.text_primary}; background: transparent; }}
+        ListWidget::item:selected, QListWidget::item:selected {{ background-color: {tokens.btn_secondary_bg}; color: {tokens.text_primary}; }}
         CardWidget {{ background-color: {tokens.card_bg}; border: 1px solid {tokens.card_border}; border-radius: 8px; }}
         SubtitleLabel {{ color: {tokens.text_primary}; font-size: 13px; font-weight: bold; }}
         BodyLabel {{ color: {tokens.text_primary}; font-size: 12px; }}

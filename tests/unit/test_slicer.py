@@ -11,6 +11,7 @@ from src.gifcreater.core.slicer import (
     GridConfig,
     calculate_default_grid,
     detect_dividers_universal,
+    divider_trim_px,
     get_grid_divider_coords,
     slice_image,
     split_grid_image,
@@ -129,6 +130,31 @@ def test_get_grid_divider_coords_auto_and_uniform(dummy_grid_image_3x3):
     )
     assert xs_b == [110]
     assert ys_b == [110]
+
+
+def test_divider_trim_px_scales_with_cell():
+    assert divider_trim_px(100, 100, False) == 0
+    t = divider_trim_px(100, 100, True)
+    assert 2 <= t <= 32
+    assert divider_trim_px(400, 400, True) >= divider_trim_px(80, 80, True)
+
+
+def test_slice_image_smart_crop_drops_thick_gutter():
+    """粗黑缝不应留在切片里。"""
+    im = Image.new("RGB", (200, 200), (20, 180, 80))
+    for x in range(92, 108):
+        for y in range(200):
+            im.putpixel((x, y), (0, 0, 0))
+    for y in range(92, 108):
+        for x in range(200):
+            im.putpixel((x, y), (0, 0, 0))
+    cfg = GridConfig(rows=2, cols=2, row_lines=[100], col_lines=[100])
+    frames = slice_image(im, grid_config=cfg, smart_crop=True)
+    assert len(frames) == 4
+    w, h = frames[0].size
+    # 右下角靠近原缝的像素不应再是纯黑框
+    corner = frames[0].getpixel((w - 1, h - 1))
+    assert corner[0] + corner[1] + corner[2] > 30
 
 
 def test_slice_image_in_memory():

@@ -29,11 +29,14 @@ from qfluentwidgets import (
     InfoBar,
     InfoBarPosition,
     MSFluentWindow,
+    NavigationItemPosition,
     ProgressRing,
     PushButton,
 )
 
-from ..config.theme_manager import ThemeManager
+from ..config.secrets import SecretStore
+from ..config.settings import SettingsManager
+from ..config.theme_manager import ThemeManager, ThemeMode
 from ..core import (
     GridConfig,
     calculate_default_grid,
@@ -42,6 +45,8 @@ from ..core import (
 from ..utils.paths import get_default_output_dirs, get_base_dir
 from .canvas import InteractiveCanvas
 from .filmstrip import FilmstripWidget
+from .prompt_page import PromptPage
+from .settings_page import SettingsPage
 from .sidebar import ControlSidebar
 from .workers import ExportWorker, SliceWorker
 
@@ -50,9 +55,9 @@ class MainWindow(MSFluentWindow):
     """
     动图工坊主窗口
     """
-    def __init__(self):
+    def __init__(self, settings_manager=None, secret_store=None):
         super().__init__()
-        self.setWindowTitle("🎞️ GifCreater 动画工坊 v3.0")
+        self.setWindowTitle("🎞️ GifCreater 动画工坊 v3.5")
         self.resize(1180, 780)
         self.setMinimumSize(980, 680)
 
@@ -72,6 +77,13 @@ class MainWindow(MSFluentWindow):
         # 异步线程引用
         self.slice_worker: Optional[SliceWorker] = None
         self.export_worker: Optional[ExportWorker] = None
+
+        self.settings_manager = settings_manager or SettingsManager()
+        self.secret_store = secret_store or SecretStore()
+        cfg = self.settings_manager.load()
+        ThemeManager.get_instance().set_theme(
+            ThemeMode.LIGHT if cfg.normalized_theme() == "light" else ThemeMode.DARK
+        )
 
         # 初始化主界面容器
         self._init_ui()
@@ -189,6 +201,16 @@ class MainWindow(MSFluentWindow):
 
         # 注册中央工作区到 Fluent 主窗口
         self.addSubInterface(self.central_widget, FIF.PHOTO, "动图工坊")
+        self.prompt_page = PromptPage(
+            settings=self.settings_manager, secrets=self.secret_store, parent=self
+        )
+        self.addSubInterface(self.prompt_page, FIF.EDIT, "Prompt")
+        self.settings_page = SettingsPage(
+            self.settings_manager, secrets=self.secret_store, parent=self
+        )
+        self.addSubInterface(
+            self.settings_page, FIF.SETTING, "设置", position=NavigationItemPosition.BOTTOM
+        )
 
         # 挂载全局主题状态监听并应用初始高对比度样式
         ThemeManager.get_instance().themeChanged.connect(self._on_theme_changed)
@@ -299,11 +321,14 @@ class MainWindow(MSFluentWindow):
         InfoBar.success("智能吸附对齐完成", "已自动识别分镜留白缝隙并居中定位", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
 
     def _reset_grid_uniform(self):
-        """用户请求恢复纯几何均匀等分"""
+        """用户请求恢复纯几何均匀等分。切片必须按参考线原样裁，不能再去缝。"""
         if not self.current_pil_image:
             return
         rows = self.sidebar.spin_rows.value()
         cols = self.sidebar.spin_cols.value()
+        self.sidebar.switch_crop.blockSignals(True)
+        self.sidebar.switch_crop.setChecked(False)
+        self.sidebar.switch_crop.blockSignals(False)
         self.current_grid = calculate_default_grid(
             self.current_pil_image.width,
             self.current_pil_image.height,
@@ -314,7 +339,7 @@ class MainWindow(MSFluentWindow):
         )
         self.canvas.update_grid(self.current_grid)
         self.label_status.setText("已恢复几何均匀等分")
-        InfoBar.info("已重置网格", "已恢复为纯几何等距离均匀划分", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
+        InfoBar.info("已重置网格", "已按画面均匀等分，切片将原样裁切", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2000)
 
     def _on_canvas_grid_modified(self, new_grid: GridConfig):
         self.current_grid = new_grid
@@ -412,12 +437,20 @@ class MainWindow(MSFluentWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(gifs_dir)))
 
     def _toggle_app_theme(self):
-        ThemeManager.get_instance().toggle_theme()
+        mode = ThemeManager.get_instance().toggle_theme()
+        cfg = self.settings_manager.load()
+        cfg.theme = mode.value
+        self.settings_manager.save(cfg)
+        self.settings_page.sync_from_manager()
 
     def _on_theme_changed(self, theme_name: Optional[str] = None):
         mgr = ThemeManager.get_instance()
         qss = mgr.get_theme_stylesheet()
         self.central_widget.setStyleSheet(qss)
+        if hasattr(self, "prompt_page"):
+            self.prompt_page.setStyleSheet(qss)
+        if hasattr(self, "settings_page"):
+            self.settings_page.setStyleSheet(qss)
         is_dark = mgr.is_dark()
         self.btn_theme.setText("切换浅色" if is_dark else "切换深色")
         self.label_filepath.setStyleSheet(f"color: {mgr.tokens.text_secondary}; font-size: 12px;")

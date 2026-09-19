@@ -1,7 +1,27 @@
 /* Light Theme (浅色高对比度明亮主题) */
 
-#workshopInterface {
+#workshopInterface, #promptInterface, #settingsInterface {
     background-color: #f4f4f5;
+}
+
+ListWidget, QListWidget {
+    background-color: #ffffff;
+    color: #09090b;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+}
+ListWidget::viewport, QListWidget::viewport {
+    background-color: #ffffff;
+}
+
+ListWidget::item, QListWidget::item {
+    color: #09090b;
+    background: transparent;
+}
+
+ListWidget::item:selected, QListWidget::item:selected {
+    background-color: #e4e4e7;
+    color: #09090b;
 }
 
 ControlSidebar {

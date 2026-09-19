@@ -124,7 +124,7 @@ class ControlSidebar(SingleDirectionScrollArea):
         btn_grid_actions.addWidget(self.btn_auto_align)
 
         self.btn_reset_grid = PushButton("↺ 均匀等分")
-        self.btn_reset_grid.setToolTip("恢复几何均匀等分网格参考线")
+        self.btn_reset_grid.setToolTip("按画面均匀划分；关闭智能去缝，切片与参考线一致")
         self.btn_reset_grid.clicked.connect(self.resetGridRequested.emit)
         btn_grid_actions.addWidget(self.btn_reset_grid)
         layout_grid.addLayout(btn_grid_actions)
@@ -168,6 +168,26 @@ class ControlSidebar(SingleDirectionScrollArea):
         self.slider_rotation.setValue(0)
         self.slider_rotation.valueChanged.connect(self._on_rotation_slider_changed)
         layout_caption.addWidget(self.slider_rotation)
+
+        size_header = QHBoxLayout()
+        self.label_font_size = BodyLabel("文字大小: 24")
+        size_header.addWidget(self.label_font_size)
+        size_header.addStretch()
+        layout_caption.addLayout(size_header)
+        size_quick = QHBoxLayout()
+        size_quick.setSpacing(6)
+        for px in (16, 24, 36, 48):
+            btn_sz = PushButton(str(px))
+            btn_sz.setFixedHeight(24)
+            btn_sz.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            btn_sz.clicked.connect(lambda _, v=px: self.slider_font_size.setValue(v))
+            size_quick.addWidget(btn_sz)
+        layout_caption.addLayout(size_quick)
+        self.slider_font_size = Slider(Qt.Orientation.Horizontal)
+        self.slider_font_size.setRange(12, 96)
+        self.slider_font_size.setValue(24)
+        self.slider_font_size.valueChanged.connect(self._on_font_size_changed)
+        layout_caption.addWidget(self.slider_font_size)
 
         # 颜色与透明度选择区
         style_grid = QHBoxLayout()
@@ -373,6 +393,10 @@ class ControlSidebar(SingleDirectionScrollArea):
     def _set_rotation_angle(self, deg: int):
         self.slider_rotation.setValue(deg)
 
+    def _on_font_size_changed(self, val: int):
+        self.label_font_size.setText(f"文字大小: {val}")
+        self._on_caption_changed()
+
     def apply_theme(self, theme_name: Optional[str] = None):
         """动态加载并应用高对比度主题样式"""
         qss = ThemeManager.get_instance().get_theme_stylesheet()
@@ -490,6 +514,7 @@ class ControlSidebar(SingleDirectionScrollArea):
             pos_x_ratio=getattr(self, "caption_pos_x_ratio", 0.5),
             pos_y_ratio=getattr(self, "caption_pos_y_ratio", 0.88),
             rotation_deg=getattr(self, "caption_rotation", 0.0),
+            font_size=self.slider_font_size.value(),
             text_color=rgba_text,
             stroke_color=rgba_stroke,
             stroke_width=self.slider_stroke_width.value(),
@@ -515,5 +540,6 @@ class ControlSidebar(SingleDirectionScrollArea):
         self.btn_stroke_color.setEnabled(not is_processing)
         self.slider_text_opacity.setEnabled(not is_processing)
         self.slider_stroke_width.setEnabled(not is_processing)
+        self.slider_font_size.setEnabled(not is_processing)
 
 
