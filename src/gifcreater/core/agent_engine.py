@@ -18,7 +18,8 @@ Rules:
 - Cell count MUST equal rows*cols. Same character, clothes, hair, body in every cell.
 - Sequential motion, left-to-right then top-to-bottom.
 - Keep all actions, poses, and effects tightly contained within the character's local space. Do not describe oversized projectile trails, sprawling horizontal leaps, or wide effects that cross cell borders.
-- If background is transparent/solid, DO NOT describe any environment, floors, trees, furniture, or cast shadows. Focus exclusively on character actions.
+- If background is transparent, DO NOT describe any background, environment, floors, or cast shadows. Focus exclusively on character actions for a clean sticker cutout.
+- If background is solid, describe only the character action on a flat solid plane, no scenery.
 - If background is scenic, keep environmental scenery coherent and stationary across all panels.
 - Do not mention comic pages, frames, gutters, grid lines, stamps, or collages.
 - Do not mention extra empty cells or irregular panel sizes.
@@ -57,10 +58,11 @@ def build_user_message(brief: GenerationBrief) -> str:
     cells = brief.rows * brief.cols
     bg_mode = (getattr(brief, "bg_mode", None) or "transparent").lower()
     bg_desc = {
-        "transparent": "Isolated sticker on pure solid white background (zero environment/props)",
+        "transparent": "Transparent background (isolated sticker, zero background/environment)",
+        "solid": "Solid flat white background (clean solid color, no scenery)",
         "scene": "Continuous environmental scenic background across panels",
         "auto": "Natural background",
-    }.get(bg_mode, "Isolated sticker on pure solid white background")
+    }.get(bg_mode, "Transparent background (isolated sticker, zero background/environment)")
 
     parts = [
         f"Grid: {brief.rows}x{brief.cols} ({cells} panels).",

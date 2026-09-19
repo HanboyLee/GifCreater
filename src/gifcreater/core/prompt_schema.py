@@ -42,18 +42,23 @@ def layout_lock_paragraph(rows: int, cols: int, bg_mode: str = "transparent") ->
     cells = rows * cols
 
     mode = (bg_mode or "transparent").lower().strip()
-    if mode == "scene":
+    if mode == "solid":
+        bg_clause = (
+            "Background MUST be a pure solid flat white background (#FFFFFF). "
+            "Clean solid color, completely plain flat backdrop, no gradients, no scenery props. "
+        )
+    elif mode == "scene":
         bg_clause = (
             "All cells share one continuous, seamless scenic background environment. "
             "The scenery, props, and lighting must stay consistent across all panels while character performs action. "
         )
     elif mode == "auto":
         bg_clause = "Cells share one seamless uniform background without borders. "
-    else:
+    else:  # transparent (default)
         bg_clause = (
-            "Background MUST be a pure solid flat white background (#FFFFFF). "
+            "Background MUST be a completely transparent background. "
             "Isolated character sticker style, clean die-cut silhouette, no ground shadows, "
-            "no environment, no background objects, ready for transparent cutout. "
+            "zero environment, no background objects, ready for transparent cutout. "
         )
 
     anti_bleed_clause = (

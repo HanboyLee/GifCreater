@@ -23,7 +23,8 @@ def test_system_prompt_forbids_mj_flags():
     assert "NEVER" in SYSTEM_PROMPT
     assert "tightly contained" in SYSTEM_PROMPT
     assert "cross cell borders" in SYSTEM_PROMPT
-    assert "transparent/solid" in SYSTEM_PROMPT
+    assert "clean sticker cutout" in SYSTEM_PROMPT
+    assert "solid plane" in SYSTEM_PROMPT
 
 
 def test_layout_lock_is_sliceable_grid():
@@ -52,7 +53,10 @@ def test_build_user_message_counts_panels():
     assert "Continuous environmental scenic background" in msg
 
     msg_trans = build_user_message(GenerationBrief(inspiration="挥手", rows=2, cols=2, bg_mode="transparent"))
-    assert "Isolated sticker on pure solid white background" in msg_trans
+    assert "Transparent background" in msg_trans
+
+    msg_solid = build_user_message(GenerationBrief(inspiration="跳跃", rows=2, cols=2, bg_mode="solid"))
+    assert "Solid flat white background" in msg_solid
 
 
 def test_sanitize_fences():

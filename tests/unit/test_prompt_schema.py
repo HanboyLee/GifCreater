@@ -65,12 +65,13 @@ def test_default_presets():
 def test_layout_lock_bg_mode_and_anti_bleed():
     from src.gifcreater.core.prompt_schema import layout_lock_paragraph
 
-    # 1. 纯色透明底 (transparent, 默认)
+    # 1. 透明背景 (transparent, 默认免抠)
     t_text = layout_lock_paragraph(3, 3, bg_mode="transparent")
-    assert "#FFFFFF" in t_text
+    assert "completely transparent background" in t_text
     assert "Isolated character sticker style" in t_text
     assert "no ground shadows" in t_text
-    assert "no environment" in t_text
+    assert "zero environment" in t_text
+    assert "#FFFFFF" not in t_text
 
     # 防越界穿模护城河约束
     assert "CRITICAL COMPACT SCALE" in t_text
@@ -78,16 +79,22 @@ def test_layout_lock_bg_mode_and_anti_bleed():
     assert "at least 15% wide empty blank buffer margin" in t_text
     assert "ABSOLUTELY NO BLEED-OVER" in t_text
 
-    # 2. 场景连贯环境 (scene)
+    # 2. 纯色背景 (solid, 纯色平铺)
+    solid_text = layout_lock_paragraph(3, 3, bg_mode="solid")
+    assert "#FFFFFF" in solid_text
+    assert "pure solid flat white background" in solid_text
+    assert "Clean solid color" in solid_text
+    assert "ABSOLUTELY NO BLEED-OVER" in solid_text
+
+    # 3. 场景连贯环境 (scene)
     s_text = layout_lock_paragraph(4, 4, bg_mode="scene")
     assert "continuous, seamless scenic background environment" in s_text
     assert "scenery, props, and lighting must stay consistent" in s_text
     assert "#FFFFFF" not in s_text
-    # 同样必须包含防越界穿模约束
     assert "60% to 70%" in s_text
     assert "ABSOLUTELY NO BLEED-OVER" in s_text
 
-    # 3. 自由不限 (auto)
+    # 4. 自由不限 (auto)
     a_text = layout_lock_paragraph(2, 2, bg_mode="auto")
     assert "seamless uniform background without borders" in a_text
     assert "ABSOLUTELY NO BLEED-OVER" in a_text

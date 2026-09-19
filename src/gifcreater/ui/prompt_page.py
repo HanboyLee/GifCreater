@@ -113,15 +113,18 @@ class PromptPage(QWidget):
 
         g.addWidget(BodyLabel("背景模式"))
         bg_row = QHBoxLayout()
-        self.rb_bg_transparent = RadioButton("🟢 纯色透明底 (表情包推荐)")
-        self.rb_bg_scene = RadioButton("🔵 场景环境 (连贯背景)")
+        self.rb_bg_transparent = RadioButton("🟢 透明背景 (表情包推荐)")
+        self.rb_bg_solid = RadioButton("⚪ 纯色背景")
+        self.rb_bg_scene = RadioButton("🔵 场景背景 (连贯环境)")
         self.rb_bg_auto = RadioButton("⚪ 自由不限")
         self.rb_bg_transparent.setChecked(True)
         self.bg_group = QButtonGroup(self)
         self.bg_group.addButton(self.rb_bg_transparent, 0)
-        self.bg_group.addButton(self.rb_bg_scene, 1)
-        self.bg_group.addButton(self.rb_bg_auto, 2)
+        self.bg_group.addButton(self.rb_bg_solid, 1)
+        self.bg_group.addButton(self.rb_bg_scene, 2)
+        self.bg_group.addButton(self.rb_bg_auto, 3)
         bg_row.addWidget(self.rb_bg_transparent)
+        bg_row.addWidget(self.rb_bg_solid)
         bg_row.addWidget(self.rb_bg_scene)
         bg_row.addWidget(self.rb_bg_auto)
         bg_row.addStretch()
@@ -198,6 +201,8 @@ class PromptPage(QWidget):
         self.spin_cols.setValue(cols)
 
     def get_bg_mode(self) -> str:
+        if self.rb_bg_solid.isChecked():
+            return "solid"
         if self.rb_bg_scene.isChecked():
             return "scene"
         if self.rb_bg_auto.isChecked():
@@ -206,7 +211,9 @@ class PromptPage(QWidget):
 
     def set_bg_mode(self, mode: str):
         mode = (mode or "transparent").lower().strip()
-        if mode == "scene":
+        if mode == "solid":
+            self.rb_bg_solid.setChecked(True)
+        elif mode == "scene":
             self.rb_bg_scene.setChecked(True)
         elif mode == "auto":
             self.rb_bg_auto.setChecked(True)
