@@ -32,6 +32,8 @@ def test_refine_without_key_does_not_start_worker(qapp, tmp_path):
     page = PromptPage(store=store, settings=settings, secrets=secrets)
     page._on_refine()
     assert page._refine_worker is None
+    assert "未配置 API Key" in page.label_refine_status.text()
+    assert not page.label_refine_status.isHidden()
 
 
 def test_refine_with_mock_writes_prompt(qapp, tmp_path, monkeypatch):
@@ -50,9 +52,36 @@ def test_refine_with_mock_writes_prompt(qapp, tmp_path, monkeypatch):
     page.edit_hint.setText("黄帽衫小人挥手")
     page._on_refine()
     assert page._refine_worker is not None
+    assert page.btn_refine.text() == "完善中..."
+    assert page.btn_refine.isEnabled() is False
+    assert not page.refine_progress.isHidden()
+    assert "正在调用大模型" in page.label_refine_status.text()
+    assert not page.label_refine_status.isHidden()
+
     page._refine_worker.wait(15000)
     QApplication.processEvents()
     text = page.edit_prompt.toPlainText()
     assert "storyboard" in text.lower() or "panel" in text.lower()
     assert "--ar" not in text
     assert "--grid" not in text
+    assert page.btn_refine.text() == "完善"
+    assert page.btn_refine.isEnabled() is True
+    assert page.refine_progress.isHidden()
+    assert "成功" in page.label_refine_status.text()
+
+
+def test_refine_failure_shows_inline_error(qapp, tmp_path):
+    store = PromptStore(tmp_path / "lib.sqlite")
+    settings = SettingsManager(tmp_path / "gifcreater-settings.json")
+    secrets = SecretStore(tmp_path / "gifcreater-secrets.bin", protector=FakeProtector())
+    page = PromptPage(store=store, settings=settings, secrets=secrets)
+    page._on_refine_fail("认证失败 (401)")
+    assert page.btn_refine.text() == "完善"
+    assert page.btn_refine.isEnabled() is True
+    assert page.refine_progress.isHidden()
+    assert "❌ 完善失败: 认证失败 (401)" == page.label_refine_status.text()
+    assert not page.label_refine_status.isHidden()
+
+    # 编辑提示词后状态自动隐藏
+    page.edit_hint.setText("新提示")
+    assert page.label_refine_status.isHidden()

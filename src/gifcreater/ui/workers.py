@@ -242,6 +242,6 @@ class RefineWorker(QThread):
             self.refineFinished.emit(result.full_prompt)
         except AgentError as exc:
             self.refineFailed.emit(str(exc))
-        except Exception:
-            self.refineFailed.emit("完善失败")
+        except Exception as exc:
+            self.refineFailed.emit(str(exc) or "完善失败")
 

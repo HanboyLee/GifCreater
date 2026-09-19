@@ -14,7 +14,9 @@ from PyQt6.QtWidgets import (
 )
 from qfluentwidgets import (
     BodyLabel,
+    CaptionLabel,
     CardWidget,
+    IndeterminateProgressBar,
     LineEdit,
     ListWidget,
     PlainTextEdit,
@@ -110,11 +112,20 @@ class PromptPage(QWidget):
         hint_row = QHBoxLayout()
         self.edit_hint = LineEdit()
         self.edit_hint.setText("黄帽衫小人挥手打招呼")
+        self.edit_hint.textChanged.connect(lambda: self.label_refine_status.setVisible(False))
         self.btn_refine = PrimaryPushButton("完善")
         self.btn_refine.clicked.connect(self._on_refine)
         hint_row.addWidget(self.edit_hint, 1)
         hint_row.addWidget(self.btn_refine)
         g.addLayout(hint_row)
+
+        self.refine_progress = IndeterminateProgressBar(self)
+        self.refine_progress.setVisible(False)
+        g.addWidget(self.refine_progress)
+
+        self.label_refine_status = CaptionLabel(self)
+        self.label_refine_status.setVisible(False)
+        g.addWidget(self.label_refine_status)
         right.addWidget(grid_card)
 
         prompt_card = CardWidget(self)
@@ -188,6 +199,7 @@ class PromptPage(QWidget):
         self.edit_prompt.setPlainText(rec.prompt)
         self.spin_rows.setValue(rec.rows)
         self.spin_cols.setValue(rec.cols)
+        self.label_refine_status.setVisible(False)
 
     def _copy(self):
         from PyQt6.QtWidgets import QApplication
@@ -233,6 +245,9 @@ class PromptPage(QWidget):
 
         key = self.secrets.load_key()
         if not key:
+            self.label_refine_status.setText("⚠️ 未配置 API Key，请先前往「设置」配置模型参数")
+            self.label_refine_status.setStyleSheet("color: #eab308; font-weight: 500;")
+            self.label_refine_status.setVisible(True)
             InfoBar.warning(
                 "未配置 API",
                 "请先在设置中配置 API",
@@ -241,8 +256,19 @@ class PromptPage(QWidget):
                 duration=2800,
             )
             return
+
         cfg = self.settings.load()
+        model_name = cfg.model_id.strip() or "默认模型"
         self.btn_refine.setEnabled(False)
+        self.btn_refine.setText("完善中...")
+        self.refine_progress.setVisible(True)
+        self.refine_progress.start()
+
+        t = ThemeManager.get_instance().tokens
+        self.label_refine_status.setText(f"⏳ 正在调用大模型 ({model_name}) 生成分镜动作描述...")
+        self.label_refine_status.setStyleSheet(f"color: {t.accent}; font-weight: 500;")
+        self.label_refine_status.setVisible(True)
+
         self._refine_worker = RefineWorker(
             inspiration=self.edit_hint.text(),
             current_prompt=self.edit_prompt.toPlainText(),
@@ -259,14 +285,26 @@ class PromptPage(QWidget):
 
     def _on_refine_ok(self, text: str):
         self.btn_refine.setEnabled(True)
+        self.btn_refine.setText("完善")
+        self.refine_progress.stop()
+        self.refine_progress.setVisible(False)
         self.edit_prompt.setPlainText(text)
+        self.label_refine_status.setText("✓ 分镜描述完善成功，已更新至下方编辑器")
+        self.label_refine_status.setStyleSheet("color: #10b981; font-weight: 500;")
+        self.label_refine_status.setVisible(True)
         self._notify("已完善")
 
     def _on_refine_fail(self, msg: str):
         from qfluentwidgets import InfoBar, InfoBarPosition
 
         self.btn_refine.setEnabled(True)
-        InfoBar.error("完善失败", msg, parent=self.window(), position=InfoBarPosition.TOP_RIGHT, duration=3500)
+        self.btn_refine.setText("完善")
+        self.refine_progress.stop()
+        self.refine_progress.setVisible(False)
+        self.label_refine_status.setText(f"❌ 完善失败: {msg}")
+        self.label_refine_status.setStyleSheet("color: #ef4444; font-weight: 500;")
+        self.label_refine_status.setVisible(True)
+        InfoBar.error("完善失败", msg, parent=self.window(), position=InfoBarPosition.TOP_RIGHT, duration=4000)
 
     def _notify(self, msg: str):
         from qfluentwidgets import InfoBar, InfoBarPosition
