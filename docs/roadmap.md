@@ -49,15 +49,11 @@
 
 ---
 
-### 📍 v3.5 (Next Horizon) —— Prompt 收集器与 Agent 生图工作流引擎 (推进中 / 规划启动)
-**目标**：打通用户创作分镜动图“从一句话灵感到最终动图成品”的从 0 到 1 完整闭环。
+### 📍 v3.5 (Next Horizon) —— Prompt 工作台与 Agent（UI 已拍板，功能推进中）
+**目标**：一句话写成可切的自然语言分镜 Prompt → 用户自行生图 → 拖回动图工坊。
 
-1. **Prompt 收集器与知识库 (Prompt Collector & Knowledge Base)**：
-   - 结构化增删改查 (CRUD)：支持收藏、编辑正向词、负向词、适用模型（Midjourney / Flux / SDXL）、网格语法（`--grid 2x2`）；
-   - 标签化风格检索（二次元、像素风、黏土风、3D写实）与本地 JSON/Markdown 导入导出。
-2. **Agent API 智能规划与 Prompt 链生成 (Agent Workflow Engine)**：
-   - 本地多模型 Agent API 灵活接入（OpenAI / Claude / Gemini / DeepSeek 等，配置与 Key 100% 本地存储）；
-   - 标准化 5 步提示词生成管线：灵感输入 ➔ 角色/风格锚定 ➔ 分镜时序动作分解 ➔ 目标生图模型语法封装 ➔ 最终交付一键复制。
+1. **v3.5.0**：三页导航（工坊 / Prompt / 设置）；SQLite 收藏；网格快捷+自定义行列；复制/保存；主题持久化（横排 Radio）。
+2. **v3.5.1**：设置 API（OpenRouter 等）+「完善」；NL 配方；不代为出图、界面无生图产品名。
 
 ---
 

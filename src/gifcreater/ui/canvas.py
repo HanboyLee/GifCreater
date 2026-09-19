@@ -363,6 +363,12 @@ class InteractiveCanvas(QGraphicsView):
         if self.frames:
             self.frame_pixmaps = [self._generate_frame_pixmap(f) for f in self.frames]
             self._display_current_frame()
+        elif self.current_pil_image and self.pixmap_item:
+            if self.caption_text:
+                rendered = draw_caption(self.current_pil_image, cfg)
+                self.pixmap_item.setPixmap(pil_to_qpixmap(rendered))
+            else:
+                self.pixmap_item.setPixmap(pil_to_qpixmap(self.current_pil_image))
 
     def set_caption(self, text: str, position: str = "bottom"):
         """兼容旧版纯文本设置"""

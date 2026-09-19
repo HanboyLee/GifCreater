@@ -339,6 +339,16 @@ def get_grid_divider_coords(
     return xs, ys
 
 
+def divider_trim_px(cell_w: float, cell_h: float, smart_crop: bool) -> int:
+    """智能去缝：按格尺寸吃掉绘制出来的粗网格线，避免线留在帧里。"""
+    if not smart_crop:
+        return 0
+    span = min(float(cell_w), float(cell_h))
+    if span <= 0:
+        return 0
+    return max(2, min(32, int(round(span * 0.08))))
+
+
 def slice_image(
     img: Image.Image,
     grid_config: GridConfig,
@@ -366,7 +376,11 @@ def slice_image(
     v_lines = sorted([x for x in grid_config.col_lines if min_x <= x <= max_x])
     h_lines = sorted([y for y in grid_config.row_lines if min_y <= y <= max_y])
 
-    trim_px = 1 if smart_crop else 0
+    cols = max(1, len(v_lines) + 1)
+    rows = max(1, len(h_lines) + 1)
+    cell_w = (max_x - min_x) / float(cols)
+    cell_h = (max_y - min_y) / float(rows)
+    trim_px = divider_trim_px(cell_w, cell_h, smart_crop)
 
     # 构建列切片范围
     col_bounds = []

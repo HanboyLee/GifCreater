@@ -192,6 +192,7 @@
       flex: 1;
       display: flex;
       overflow: hidden;
+      position: relative;
     }
 
     /* 1. 最左侧 Fluent 垂直导航条 (MSFluentWindow 标志) */
@@ -835,6 +836,244 @@
       background: #25262c;
       color: #a0a0a0;
     }
+
+    /* —— v3.5 Prompt / Settings —— */
+    .badge-v35 {
+      background: rgba(34, 211, 238, 0.15);
+      color: var(--accent);
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .prompt-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      gap: 8px;
+    }
+    .prompt-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .prompt-body { display: none; flex-direction: column; gap: 8px; }
+    .prompt-body.open { display: flex; }
+    .prompt-search {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      outline: none;
+    }
+    .prompt-list {
+      max-height: 140px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      background: var(--input-bg);
+    }
+    .prompt-row {
+      padding: 7px 10px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--card-border);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .prompt-row:last-child { border-bottom: none; }
+    .prompt-row:hover { background: rgba(34, 211, 238, 0.08); }
+    .prompt-row.selected { background: rgba(34, 211, 238, 0.16); }
+    .prompt-row small { color: var(--text-muted); font-size: 10px; }
+    .prompt-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .settings-stage {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 16px 22px 18px;
+      overflow: auto;
+      gap: 12px;
+    }
+    .settings-stage.visible { display: flex; }
+    .settings-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .settings-sub { font-size: 12px; color: var(--text-sub); }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+    .field-input, .field-select, .field-area {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+    .field-area { min-height: 56px; resize: vertical; font-family: inherit; }
+    .key-saved {
+      font-size: 12px;
+      color: #4ade80;
+      padding: 8px 10px;
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px dashed #4ade80;
+      border-radius: 6px;
+    }
+    .modal-scrim {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 80;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-scrim.open { display: flex; }
+    .modal-panel {
+      width: min(560px, 92vw);
+      background: var(--window-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+      padding: 16px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .grid-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .grid-pill {
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-sub);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .grid-pill.on {
+      background: var(--accent);
+      color: var(--btn-primary-text);
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .result-box {
+      background: var(--canvas-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 11px;
+      color: var(--text-sub);
+      line-height: 1.55;
+      max-height: 160px;
+      overflow: auto;
+      display: none;
+    }
+    .result-box.show { display: block; }
+    .infobar {
+      position: absolute;
+      bottom: 48px;
+      left: 78px;
+      display: none;
+      background: #1f3d2a;
+      border: 1px solid #4ade80;
+      color: #d1fae5;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 40;
+    }
+    .infobar.show { display: block; }
+    .review-check { margin-top: 18px; max-width: 1220px; width: 100%; }
+    .review-check label {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: #d4d4d4;
+      margin: 6px 0;
+    }
+    .prompt-studio {
+      flex: 1;
+      display: none;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .prompt-studio.visible {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px 14px;
+    }
+    .prompt-lib {
+      width: 268px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .prompt-lib .prompt-list { flex: 1; max-height: none; }
+    .prompt-work {
+      flex: 1;
+      min-width: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .assist-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .assist-row .field-input { flex: 1; }
+    .nl-prompt {
+      min-height: 140px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .flow-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-sub);
+      padding: 8px 10px;
+      background: rgba(34, 211, 238, 0.08);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      border-radius: 8px;
+    }
+    .flow-strip b { color: var(--accent); font-weight: 700; }
+    .flow-arrow { color: var(--text-muted); }
+    .radio-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .radio-row .radio-option {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
   </style>
 </head>
 <body data-theme="dark">
@@ -842,17 +1081,20 @@
   <!-- 顶部原型模式切换 -->
   <div class="prototype-bar">
     <div class="proto-left">
-      <span class="proto-badge">1:1 实机对齐原型</span>
-      <span style="font-size: 13px; font-weight: 600;">已精确还原当前软件截图的所有控件、颜色与左侧导航条</span>
+      <span class="proto-badge">v3.5 待审原型</span>
+      <span style="font-size: 13px; font-weight: 600;">v3.5 原型</span>
     </div>
     <div class="proto-controls">
+      <button class="proto-btn active" id="btnSceneWorkshop" onclick="showScene('workshop')">🖼️ 动图工坊</button>
+      <button class="proto-btn" id="btnScenePrompt" onclick="showScene('prompt')">✨ Prompt 工作台</button>
+      <button class="proto-btn" id="btnSceneSettings" onclick="showScene('settings')">⚙️ 设置</button>
       <button class="proto-btn" id="btnArtworkToggle" onclick="toggleArtwork()">
         <span id="txtArtwork">🖼️ 模拟载入分镜图</span>
       </button>
       <button class="proto-btn" id="btnV30Compare" onclick="toggleV30Base()">
         <span>👁️ 还原为 v3.0 纯净现状</span>
       </button>
-      <button class="proto-btn active" onclick="toggleTheme()">
+      <button class="proto-btn" onclick="toggleTheme()">
         <span id="txtTheme">☀️ 切换浅色模式</span>
       </button>
     </div>
@@ -864,7 +1106,7 @@
     <div class="title-bar">
       <div class="title-left">
         <span>🎞️</span>
-        <span id="lblWinTitle">GifCreater 动画工坊 v3.0</span>
+        <span id="lblWinTitle">GifCreater 动画工坊 v3.5</span>
       </div>
       <div class="win-actions">
         <div class="win-btn">─</div>
@@ -877,14 +1119,22 @@
     <div class="window-body">
       <!-- 1. 最左侧 Fluent 垂直导航条 (MSFluentWindow 原生) -->
       <div class="fluent-nav-rail">
-        <div class="nav-item active" title="动图工坊">
+        <div class="nav-item active" id="navWorkshop" title="动图工坊" onclick="showScene('workshop')">
           <div class="nav-item-icon">🖼️</div>
           <div class="nav-item-text">动图工坊</div>
+        </div>
+        <div class="nav-item" id="navPrompt" title="Prompt 工作台" onclick="showScene('prompt')">
+          <div class="nav-item-icon">✨</div>
+          <div class="nav-item-text">Prompt</div>
+        </div>
+        <div class="nav-item" id="navSettings" title="设置" onclick="showScene('settings')">
+          <div class="nav-item-icon">⚙️</div>
+          <div class="nav-item-text">设置</div>
         </div>
       </div>
 
       <!-- 2. 右侧主操作区 -->
-      <div class="main-stage">
+      <div class="main-stage" id="stageWorkshop">
         <!-- 顶栏 -->
         <div class="stage-topbar">
           <button class="btn-top-open">
@@ -1167,6 +1417,94 @@
           <span id="lblStatusBar">就绪 | 请载入拼图素材</span>
         </div>
       </div>
+
+      <!-- v3.5 Prompt 工作台（独立导航页） -->
+      <div class="prompt-studio" id="stagePrompt">
+        <div class="prompt-lib">
+          <div class="card-heading"><span>📚</span><span>收藏</span></div>
+          <input class="prompt-search" placeholder="搜索" oninput="filterPrompts(this.value)">
+          <div class="prompt-list" id="promptList">
+            <div class="prompt-row selected" onclick="selectPrompt(this)">
+              <span>挥手打招呼</span><small>3×3</small>
+            </div>
+            <div class="prompt-row" onclick="selectPrompt(this)">
+              <span>连跳表情</span><small>4×4</small>
+            </div>
+            <div class="prompt-row" onclick="selectPrompt(this)">
+              <span>眨眼循环</span><small>2×2</small>
+            </div>
+          </div>
+          <div class="prompt-actions">
+            <button class="btn-cap-preset" onclick="toast('已导出 JSON')">导出</button>
+            <button class="btn-cap-preset" onclick="toast('已导入并合并')">导入</button>
+          </div>
+        </div>
+        <div class="prompt-work">
+          <div class="fluent-card">
+            <div class="field-label">网格</div>
+            <div class="grid-pills">
+              <button class="grid-pill" type="button" onclick="setGridPreset(this,2,2)">2×2</button>
+              <button class="grid-pill on" type="button" onclick="setGridPreset(this,3,3)">3×3</button>
+              <button class="grid-pill" type="button" onclick="setGridPreset(this,1,6)">1×6</button>
+              <button class="grid-pill" type="button" onclick="setGridPreset(this,4,4)">4×4</button>
+              <span class="field-label" style="margin:0 0 0 8px;">行</span>
+              <input class="field-input" id="gridRows" type="number" min="1" max="20" value="3" style="width:56px;padding:4px 6px;" oninput="onCustomGrid()">
+              <span class="field-label" style="margin:0;">列</span>
+              <input class="field-input" id="gridCols" type="number" min="1" max="20" value="3" style="width:56px;padding:4px 6px;" oninput="onCustomGrid()">
+            </div>
+            <div class="field-label" style="margin-top:10px;">提示</div>
+            <div class="assist-row">
+              <input class="field-input" id="genInsp" value="黄帽衫小人挥手打招呼">
+              <button class="btn-primary-action" style="margin:0;width:auto;padding:0 16px;" onclick="runGenerateFake()">完善</button>
+            </div>
+          </div>
+          <div class="fluent-card" style="flex:1;">
+            <div class="field-label">Prompt</div>
+            <textarea class="field-area nl-prompt" id="prmBody">A single 3x3 storyboard sheet, nine equal panels left-to-right top-to-bottom. Same chibi character in a yellow hoodie waving hello, continuous motion, consistent face and clothes.</textarea>
+            <div class="prompt-actions" style="margin-top:10px;">
+              <button class="btn-primary-action" style="margin:0;" onclick="toast('已复制')">复制</button>
+              <button class="btn-cap-preset" onclick="toast('已保存')">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- v3.5 设置页：只放密钥 -->
+      <div class="settings-stage" id="stageSettings">
+        <div>
+          <div class="settings-title">设置</div>
+        </div>
+        <div class="fluent-card" style="max-width:520px;">
+          <div class="card-heading"><span>🎨</span><span>外观</span></div>
+          <div class="radio-row">
+            <span class="field-label" style="margin:0;">主题</span>
+            <label class="radio-option"><input type="radio" name="themeMode" checked onchange="if(this.checked){document.body.setAttribute('data-theme','dark')}"> 深色</label>
+            <label class="radio-option"><input type="radio" name="themeMode" onchange="if(this.checked){document.body.setAttribute('data-theme','light')}"> 浅色</label>
+          </div>
+        </div>
+        <div class="fluent-card" style="max-width:520px;">
+          <div class="card-heading"><span>🔑</span><span>API</span></div>
+          <div class="field-label">Provider</div>
+          <select class="field-select" id="selProvider" onchange="onProviderChange()">
+            <option selected>OpenRouter（推荐）</option>
+            <option>OpenAI</option>
+            <option>DeepSeek</option>
+            <option>Ollama（本地）</option>
+            <option>自定义</option>
+          </select>
+          <div class="field-label" style="margin-top:8px;">Base URL</div>
+          <input class="field-input" id="inpBase" value="https://openrouter.ai/api/v1">
+          <div class="field-label" style="margin-top:8px;">文本模型 ID</div>
+          <input class="field-input" value="openai/gpt-4o-mini">
+          <div class="field-label" style="margin-top:8px;">API Key</div>
+          <div class="key-saved">已保存</div>
+          <div class="prompt-actions" style="margin-top:10px;">
+            <button class="btn-cap-preset" onclick="toast('连接成功（模拟）')">测试连接</button>
+            <button class="btn-cap-preset" onclick="toast('已清除 Key')">清除 Key</button>
+          </div>
+        </div>
+      </div>
+      <div class="infobar" id="infoBar">已复制</div>
     </div>
   </div>
 
@@ -1210,8 +1548,33 @@
           <td>实机原先固定 310px 导致按钮挤出且滚动条遮挡滑轨与按钮边缘。</td>
           <td><b>v3.3 弹性自适应</b>：侧边栏改为 <code>clamp(340px, 24vw, 420px)</code> 弹性区间，预留 18px 滚动安全边距，模板按钮升级为 2×2 网格，彻底消除遮挡。</td>
         </tr>
+        <tr>
+          <td><b>v3.5 左侧导航</b></td>
+          <td>现仅「动图工坊」一项。</td>
+          <td>三项：动图工坊 · Prompt 工作台 · 设置。</td>
+        </tr>
+        <tr>
+          <td><b>v3.5 Prompt 工作台</b></td>
+          <td>工坊侧栏无词库。</td>
+          <td>独立整页：左收藏库，右简单提示 + AI 完善 + 网格/出图后端（本页选择）+ 可编辑 NL Prompt。</td>
+        </tr>
+        <tr>
+          <td><b>v3.5 设置页</b></td>
+          <td>—</td>
+          <td>只放 LLM Provider / Base URL / 模型 / Key。不分镜默认值。</td>
+        </tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="comparison-board review-check">
+    <div class="board-title"><span>☑️</span><span>v3.5 原型审查清单（请在浏览器点完再回复）</span></div>
+    <label><input type="checkbox"> 界面不出现具体生图产品名</label>
+    <label><input type="checkbox"> Prompt 页主路径是：选格 → 一句话 → 完善 → 复制生图 → 回工坊</label>
+    <label><input type="checkbox"> 收藏库是历史，不是进门第一件事</label>
+    <label><input type="checkbox"> 设置只放写 Prompt 的 Key</label>
+    <label><input type="checkbox"> 三页导航能分清「写词」和「切片」</label>
+    <p style="font-size:12px;color:#888;margin-top:10px;">请回复：原型通过 / 要改哪几块。未确认前不改 <code>src/gifcreater/ui/</code>。</p>
   </div>
 
   <script>
@@ -1412,6 +1775,83 @@
         btn.innerHTML = '<span>👁️ 还原为 v3.0 纯净现状</span>';
         btn.classList.remove('active');
       }
+    }
+
+    function showScene(name) {
+      const workshop = document.getElementById('stageWorkshop');
+      const prompt = document.getElementById('stagePrompt');
+      const settings = document.getElementById('stageSettings');
+      workshop.style.display = name === 'workshop' ? 'flex' : 'none';
+      prompt.classList.toggle('visible', name === 'prompt');
+      settings.classList.toggle('visible', name === 'settings');
+      document.getElementById('navWorkshop').classList.toggle('active', name === 'workshop');
+      document.getElementById('navPrompt').classList.toggle('active', name === 'prompt');
+      document.getElementById('navSettings').classList.toggle('active', name === 'settings');
+      document.getElementById('btnSceneWorkshop').classList.toggle('active', name === 'workshop');
+      document.getElementById('btnScenePrompt').classList.toggle('active', name === 'prompt');
+      document.getElementById('btnSceneSettings').classList.toggle('active', name === 'settings');
+      const titles = {
+        workshop: 'GifCreater 动画工坊 v3.5',
+        prompt: 'GifCreater Prompt 工作台 v3.5',
+        settings: 'GifCreater 设置 v3.5'
+      };
+      document.getElementById('lblWinTitle').innerText = titles[name] || titles.workshop;
+    }
+
+    function selectPrompt(el) {
+      document.querySelectorAll('.prompt-row').forEach(r => r.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function filterPrompts(q) {
+      q = (q || '').toLowerCase();
+      document.querySelectorAll('.prompt-row').forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    function onProviderChange() {
+      const map = {
+        'OpenRouter（推荐）': 'https://openrouter.ai/api/v1',
+        'OpenAI': 'https://api.openai.com/v1',
+        'DeepSeek': 'https://api.deepseek.com/v1',
+        'Ollama（本地）': 'http://127.0.0.1:11434/v1',
+        '自定义': ''
+      };
+      document.getElementById('inpBase').value = map[document.getElementById('selProvider').value] || '';
+    }
+
+    function setGridPill(btn) {
+      document.querySelectorAll('.grid-pill').forEach(b => b.classList.remove('on'));
+      if (btn) btn.classList.add('on');
+    }
+    function setGridPreset(btn, rows, cols) {
+      setGridPill(btn);
+      document.getElementById('gridRows').value = rows;
+      document.getElementById('gridCols').value = cols;
+    }
+    function onCustomGrid() {
+      const r = document.getElementById('gridRows').value;
+      const c = document.getElementById('gridCols').value;
+      document.querySelectorAll('.grid-pill').forEach(b => {
+        b.classList.toggle('on', b.innerText === (r + '×' + c));
+      });
+    }
+    function runGenerateFake() {
+      const insp = document.getElementById('genInsp').value;
+      document.getElementById('prmBody').value =
+        'A single 3x3 storyboard sheet in one image, nine equal panels, read left-to-right then top-to-bottom. ' +
+        'Same character throughout: round face, short black hair, yellow hoodie, white sneakers. ' +
+        'Action: ' + insp + '. ' +
+        'Panel 1 idle, 2 raises hand, 3 wave start, 4–6 waving loop, 7–9 return to idle. ' +
+        'No extra people. Do not change clothes or face between panels.';
+      toast('已完善');
+    }
+    function toast(msg) {
+      const bar = document.getElementById('infoBar');
+      bar.innerText = msg;
+      bar.classList.add('show');
+      setTimeout(() => bar.classList.remove('show'), 1800);
     }
   </script>
 </body>

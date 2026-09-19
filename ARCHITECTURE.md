@@ -94,10 +94,12 @@ GifCreater/
   * 时间轴卡片式序列帧胶卷（支持多选、快捷键剔除废帧）；
   * 表情包配文与导出预设面板（自适应 `320px~480px` 弹性区间、18px 滚动安全避让区、2×2 复合模板网格，无缝切换微信 1:1、小红书 3:4、原画超清与 WebP）；
   * QSplitter 弹性工作区分割器（支持鼠标自由拖拽左侧画布与右侧控制台分割比例）；
-  * 异步 Worker 线程调度与进度信号（ProgressRing / InfoBar）联动。
+  * 异步 Worker 线程调度与进度信号（ProgressRing / InfoBar）联动；
+  * (v3.5) Fluent 导航三页：动图工坊、Prompt 工作台、设置（主题横排 + API；主题/API 持久化）。
 
 ### 3. 配置与国际化 (`src/gifcreater/config/` & `src/gifcreater/i18n/`)
 * **职责**：
+  * 负责用户偏好（主题、API Provider/Base URL/模型）本地 JSON 持久化；API Key 独立密文，禁止写入 Prompt sqlite；
   * 负责用户偏好（如常用行列数、导出格式、默认帧率）的本地持久化读取与写入；
   * 平台导出预设规格定义 (`presets.py`)；
   * 全局高对比度设计令牌与深浅色主题管理器 (`theme_manager.py`)；

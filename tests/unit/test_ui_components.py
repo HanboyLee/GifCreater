@@ -171,6 +171,66 @@ def test_canvas_caption_drag_interaction(qapp):
 
 
 
+def test_prompt_page_save_list(qapp, tmp_path):
+    from src.gifcreater.core.prompt_store import PromptStore
+    from src.gifcreater.ui.prompt_page import PromptPage
+
+    page = PromptPage(PromptStore(tmp_path / "lib.sqlite"))
+    page._set_grid(2, 2)
+    page.edit_hint.setText("眨眼")
+    page.edit_prompt.setPlainText("blink sheet")
+    page._save()
+    assert len(page.store.list()) == 1
+    assert page.store.list()[0].grid == "2x2"
+    page.reload_list()
+    assert page.list_widget.count() == 1
+    page.list_widget.setCurrentRow(0)
+    page._on_select(page.list_widget.item(0))
+    page._copy()
+    out = tmp_path / "e.json"
+    page.store.export_json(out)
+    page.store.import_json(out)
+    page._on_refine()
+    page._notify("x")
+    page._on_refine_ok("refined prompt text")
+    assert page.edit_prompt.toPlainText() == "refined prompt text"
+    page._on_refine_fail("认证失败")
+
+
+def test_settings_page_theme_persist(qapp, tmp_path):
+    from src.gifcreater.config.settings import SettingsManager
+    from src.gifcreater.ui.settings_page import SettingsPage
+
+    from src.gifcreater.config.settings import AppConfig
+
+    mgr = SettingsManager(tmp_path / "gifcreater-settings.json")
+    mgr.save(AppConfig(theme="light"))
+    page = SettingsPage(mgr)
+    assert page.radio_light.isChecked()
+    page.radio_light.setChecked(True)
+    page._persist_theme()
+    assert mgr.load().theme == "light"
+    page.sync_from_manager()
+    page.combo_provider.setCurrentIndex(1)
+    page._on_provider_changed()
+    page._save_all()
+    loaded = mgr.load()
+    assert loaded.provider == "openai" or "openai" in loaded.base_url
+    from src.gifcreater.config.secrets import FakeProtector, SecretStore
+
+    secrets = SecretStore(tmp_path / "gifcreater-secrets.bin", protector=FakeProtector())
+    page2 = SettingsPage(mgr, secrets=secrets)
+    page2.edit_key.setText("sk-new")
+    page2._save_all()
+    assert secrets.load_key() == "sk-new"
+    assert page2.combo_model.count() > 0
+    page2.search_model.setText("gpt-4o")
+    page2._on_model_search()
+    texts = [page2.combo_model.itemText(i) for i in range(page2.combo_model.count())]
+    assert texts
+    assert any("gpt-4o" in t.lower() for t in texts)
+
+
 def test_main_window_headless(qapp, tmp_path):
     """测试主窗口生命周期与素材加载"""
     win = MainWindow()
@@ -206,4 +266,9 @@ def test_main_window_headless(qapp, tmp_path):
     win.sidebar.btn_reset_grid.click()
     assert win.current_grid is not None
     assert win.current_grid.col_lines == [30, 60, 90]
+
+    assert win.prompt_page is not None
+    assert win.settings_page is not None
+    win._toggle_app_theme()
+    win._on_theme_changed("light")
 
