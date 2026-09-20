@@ -113,4 +113,6 @@ AI 在完成任务交付或汇报阶段，**杜绝任何“假设已完成”的
 - **[04-domain-wechat-compression.md](.agent/rules/04-domain-wechat-compression.md)**：微信表情包三大物理红线（<=500KB、<=240px、透明保留）与五阶调色板自适应衰减收敛算法。
 - **[05-fluent-ui-ux.md](.agent/rules/05-fluent-ui-ux.md)**：Windows 11 Fluent 美学标准、深浅色高对比度、强制调用 `UIUX-PRO-MAX` 设计智能 Skill、`QThread` 异步非阻塞 60 FPS 调度、画布与胶卷交互守则。
 - **[06-commit-and-delivery-standards.md](.agent/rules/06-commit-and-delivery-standards.md)**：AI 代理提交标准与交付契约（Conventional Commits 规范、6 项 DoD 交付门禁、标准化交付报告模板、CI/CD 提交分流）。
+- **[07-typesafe-fast-decision-policy.md](.agent/rules/07-typesafe-fast-decision-policy.md)**：TypeSafe 极速决策策略（常驻 System 1 策略、Choice/Noul/Score 原语、投机扇出与置信度升级机制）。
+
 
