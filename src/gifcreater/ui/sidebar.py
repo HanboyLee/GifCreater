@@ -88,6 +88,30 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         layout_grid.addWidget(SubtitleLabel("🔲 网格切片与探测"))
 
+        # 网格快捷预设按钮组
+        preset_box = QHBoxLayout()
+        preset_box.setSpacing(6)
+        self.btn_preset_3x3 = PushButton("3×3")
+        self.btn_preset_3x3.setToolTip("切换为 3行 × 3列 (9格)")
+        self.btn_preset_3x3.clicked.connect(lambda: self.set_grid_dimensions(3, 3))
+        preset_box.addWidget(self.btn_preset_3x3)
+
+        self.btn_preset_4x6 = PushButton("4×6")
+        self.btn_preset_4x6.setToolTip("切换为 4行 × 6列 (24格)")
+        self.btn_preset_4x6.clicked.connect(lambda: self.set_grid_dimensions(4, 6))
+        preset_box.addWidget(self.btn_preset_4x6)
+
+        self.btn_preset_6x4 = PushButton("6×4")
+        self.btn_preset_6x4.setToolTip("切换为 6行 × 4列 (24格)")
+        self.btn_preset_6x4.clicked.connect(lambda: self.set_grid_dimensions(6, 4))
+        preset_box.addWidget(self.btn_preset_6x4)
+
+        self.btn_preset_4x4 = PushButton("4×4")
+        self.btn_preset_4x4.setToolTip("切换为 4行 × 4列 (16格)")
+        self.btn_preset_4x4.clicked.connect(lambda: self.set_grid_dimensions(4, 4))
+        preset_box.addWidget(self.btn_preset_4x4)
+        layout_grid.addLayout(preset_box)
+
         # 行列设置
         row_box = QHBoxLayout()
         row_box.addWidget(BodyLabel("行数 (Rows):"))
@@ -362,6 +386,16 @@ class ControlSidebar(SingleDirectionScrollArea):
 
         layout.addStretch()
         self.apply_theme()
+
+    def set_grid_dimensions(self, rows: int, cols: int):
+        """设置网格行列数并触发信号"""
+        self.spin_rows.blockSignals(True)
+        self.spin_cols.blockSignals(True)
+        self.spin_rows.setValue(rows)
+        self.spin_cols.setValue(cols)
+        self.spin_rows.blockSignals(False)
+        self.spin_cols.blockSignals(False)
+        self._on_grid_changed()
 
     def _on_grid_changed(self):
         self.gridParamChanged.emit(

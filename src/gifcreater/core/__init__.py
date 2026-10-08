@@ -42,6 +42,14 @@ from .caption import (
     draw_caption,
     apply_caption_to_frames,
 )
+from .video_source import (
+    VideoCancelled,
+    VideoError,
+    VideoInfo,
+    VideoReader,
+    grid_frame_count,
+    probe_video,
+)
 
 __all__ = [
     "GridConfig",
@@ -64,6 +72,12 @@ __all__ = [
     "natural_sort_key",
     "draw_caption",
     "apply_caption_to_frames",
+    "VideoCancelled",
+    "VideoError",
+    "VideoInfo",
+    "VideoReader",
+    "grid_frame_count",
+    "probe_video",
 ]
 
 

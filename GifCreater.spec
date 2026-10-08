@@ -1,15 +1,26 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('resources', 'resources')]
+binaries = []
+hiddenimports = [
+    'qfluentwidgets',
+    'PyQt6',
+    'PIL',
+    'av',
+]
+
+av_datas, av_binaries, av_hiddenimports = collect_all('av')
+datas += av_datas
+binaries += av_binaries
+hiddenimports += av_hiddenimports
 
 a = Analysis(
     ['main.py'],
     pathex=['src'],
-    binaries=[],
-    datas=[('resources', 'resources')],
-    hiddenimports=[
-        'qfluentwidgets',
-        'PyQt6',
-        'PIL',
-    ],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

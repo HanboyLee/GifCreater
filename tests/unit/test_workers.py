@@ -143,3 +143,64 @@ def test_model_fetch_worker(qapp, monkeypatch):
     fail_worker.run()
     assert len(errors) == 1
     assert "网络不可达" in errors[0]
+
+
+def test_video_frame_worker(qapp):
+    from src.gifcreater.ui.workers import VideoFrameWorker
+
+    class MockReader:
+        def get_frame_by_index(self, idx):
+            if idx < 0:
+                raise RuntimeError("invalid index")
+            return Image.new("RGB", (100, 80), (255, 0, 0))
+
+    reader = MockReader()
+    worker = VideoFrameWorker(reader, index=3, max_edge=40)
+    ready = []
+    worker.frameReady.connect(lambda idx, img: ready.append((idx, img)))
+    worker.run()
+    assert len(ready) == 1
+    idx, img = ready[0]
+    assert idx == 3
+    assert max(img.size) <= 40
+
+    # 失败分支
+    err_worker = VideoFrameWorker(reader, index=-1)
+    errs = []
+    err_worker.errorOccurred.connect(lambda msg: errs.append(msg))
+    err_worker.run()
+    assert len(errs) == 1
+    assert "invalid index" in errs[0]
+
+
+def test_video_sample_worker(qapp):
+    from src.gifcreater.ui.workers import VideoSampleWorker
+
+    class MockReader:
+        def sample_evenly(self, n, t_start=0.0, t_end=None, max_edge=None, progress=None, should_cancel=None):
+            if should_cancel and should_cancel():
+                raise RuntimeError("cancelled")
+            for i in range(1, n + 1):
+                if progress:
+                    progress(i, n)
+            return [Image.new("RGB", (20, 20), (0, 0, 0)) for _ in range(n)]
+
+    reader = MockReader()
+    worker = VideoSampleWorker(reader, count=3, t_start=0.1, t_end=1.0)
+    prog = []
+    fin = []
+    worker.progressChanged.connect(lambda done, tot: prog.append((done, tot)))
+    worker.samplingFinished.connect(lambda res: fin.append(res))
+    worker.run()
+    assert prog == [(1, 3), (2, 3), (3, 3)]
+    assert len(fin[0]) == 3
+
+    # 取消分支
+    cancel_worker = VideoSampleWorker(reader, count=3)
+    cancel_worker.cancel()
+    errs = []
+    cancel_worker.samplingFailed.connect(lambda e: errs.append(e))
+    cancel_worker.run()
+    # 取消后不应发射错误
+    assert len(errs) == 0
+

@@ -607,9 +607,29 @@ if sys.platform == "win32":
    - 选中下拉项后，模型 ID 立即锁定至配置暂存区并展示选定标记；
    - 保存时同步持久化至 `gifcreater-settings.json`。
 
+## 二十二、 视频静止帧 → 网格裁切 → 合并 GIF 设计 (Video Still Frames, v3.6 规划)
+
+### 1. 架构分层
+- **无头核心 `core/video_source.py`**：基于 PyAV 的 `probe_video` / `VideoReader`，只产出 RGB `PIL.Image`，不引入任何 GUI 依赖；切片 (`slice_image`) 与导出 (`export_gif`) **零改动复用**。
+- **异步层 `ui/workers.py`**：`VideoFrameWorker`（单帧解码，防抖 + 最新请求优先 + LRU 8 帧）与 `VideoSampleWorker`（批量抽帧，进度/取消）。
+- **表现层 `ui/video_dialog.py`**：Fluent 模态 `VideoStillDialog`，与主窗口通过信号 `stillSelected(PIL.Image, rows, cols)` / `framesSampled(list[Image])` 解耦。
+
+### 2. 帧级精确定位
+- 先 seek 到目标 pts 之前的关键帧，再向前解码直到 `frame.pts >= 目标 pts`，以 pts（而非 fps 推算）确定帧索引，兼容 VFR 与 B 帧；
+- 越界时间/索引夹紧到 `[0, frame_count-1]`；旋转元数据在输出端校正；
+- 测试以「第 i 帧整幅为第 i 种颜色」的动态微型视频断言返回帧号精确。
+
+### 3. 双模式与主窗口集成
+- **模式 A**：确认静止帧 → 主窗口 `load_pil_image()`（由 `load_image_file()` 抽出的共用初始化）→ 按所选网格预设初始化参考线 → 现有「一键拆解合成」；
+- **模式 B**：`sample_evenly(rows*cols, t_start, t_end)` → 直接 `filmstrip.set_frames` → 现有预览/删帧/配文/导出。
+
+### 4. 依赖与打包
+- 新增 `av>=12`；`GifCreater.spec` 使用 `collect_all('av')`；EXE 体积增量实测后写入交付报告。
+
 ---
 
-## 二十二、 变更与演进记录 (Changelog)
+## 二十三、 变更与演进记录 (Changelog)
+- **2026-10-08 (视频静止帧 → 网格裁切 → 合并 GIF 立项)**：确立双模式方案，PyAV 帧级精确解码 + Fluent 模态对话框，核心无头、复用现有切片与导出引擎。
 - **2026-09-20 (动态接入 Provider Models API 与全量模型检索锁定)**：接入各 Provider 标准 `GET /models` 官方接口，配合 `QThread` 异步调度与本地文件级持久化缓存，支持在成百上千个官方模型中毫秒级模糊过滤并锁定模型 ID。
 - **2026-09-20 (Prompt 工作台列表超长省略与标签/删除管理)**：为收藏列表启用 `TextElideMode.ElideRight` 文本溢出省略与悬浮气泡全称提示；新增底部操作栏与右键菜单双通道删除能力并配备 Fluent 二次确认；实现多维标签输入与下拉分类快速筛选。
 - **2026-09-20 (GIF 动图透明通道保留与边缘抗光晕毛刺修复)**：彻底根治 RGBA 导出 GIF 时背景变成黑色以及边缘产生黑边光晕瑕疵的问题，构建统一全局量化调色板、透明通道专属槽位与 disposal=2 时序刷新机制。

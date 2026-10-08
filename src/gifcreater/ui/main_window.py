@@ -105,7 +105,11 @@ class MainWindow(MSFluentWindow):
         self.btn_open_file.clicked.connect(self._select_image_file)
         top_bar.addWidget(self.btn_open_file)
 
-        self.label_filepath = QLabel("📥 拖拽拼图图片至此，或点击左侧浏览选择素材")
+        self.btn_import_video = PushButton(FIF.VIDEO, "🎬 导入视频...")
+        self.btn_import_video.clicked.connect(self._select_video_file)
+        top_bar.addWidget(self.btn_import_video)
+
+        self.label_filepath = QLabel("📥 拖拽拼图图片或视频至此，或点击左侧按钮选择素材")
         self.label_filepath.setStyleSheet("color: #e0e0e0; font-size: 12px; font-weight: normal;")
         top_bar.addWidget(self.label_filepath, 1)
 
@@ -228,10 +232,16 @@ class MainWindow(MSFluentWindow):
         urls = event.mimeData().urls()
         if urls:
             file_path = Path(urls[0].toLocalFile())
-            if file_path.is_file() and file_path.suffix.lower() in (".png", ".jpg", ".jpeg", ".bmp", ".webp"):
-                self.load_image_file(file_path)
-                event.acceptProposedAction()
-                return
+            if file_path.is_file():
+                suffix = file_path.suffix.lower()
+                if suffix in (".png", ".jpg", ".jpeg", ".bmp", ".webp"):
+                    self.load_image_file(file_path)
+                    event.acceptProposedAction()
+                    return
+                elif suffix in (".mp4", ".mov", ".webm", ".mkv", ".avi"):
+                    self.open_video_dialog(file_path)
+                    event.acceptProposedAction()
+                    return
         super().dropEvent(event)
 
     def _select_image_file(self):
@@ -244,14 +254,36 @@ class MainWindow(MSFluentWindow):
         if file_path:
             self.load_image_file(Path(file_path))
 
+    def _select_video_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择视频素材",
+            "",
+            "Videos (*.mp4 *.mov *.webm *.mkv *.avi);;All Files (*.*)",
+        )
+        if file_path:
+            self.open_video_dialog(Path(file_path))
+
     def load_image_file(self, file_path: Path):
         """载入图像文件并初始化网格参考线"""
         try:
             pil_img = Image.open(file_path)
+            self.load_pil_image(pil_img, label_name=file_path.name, file_path=file_path)
+        except Exception as e:
+            InfoBar.error("载入失败", str(e), parent=self, position=InfoBarPosition.TOP_RIGHT)
+
+    def load_pil_image(
+        self,
+        pil_img: Image.Image,
+        label_name: str = "素材图像",
+        file_path: Optional[Path] = None,
+    ):
+        """将 PIL 图像载入工坊画布并初始化网格参考线"""
+        try:
             self.current_file_path = file_path
             self.current_pil_image = pil_img
-            self.label_filepath.setText(f"📄 素材: {file_path.name} ({pil_img.width} × {pil_img.height} px)")
-            self.label_status.setText(f"已载入素材: {file_path.name}")
+            self.label_filepath.setText(f"📄 素材: {label_name} ({pil_img.width} × {pil_img.height} px)")
+            self.label_status.setText(f"已载入素材: {label_name}")
 
             # 初始化默认网格配置 (若开启智能裁剪则自动执行投影波谷吸附)
             rows = self.sidebar.spin_rows.value()
@@ -276,9 +308,52 @@ class MainWindow(MSFluentWindow):
             self.btn_play_pause.setText("播放")
             self.label_frame_info.setText("帧进度: 00/00")
 
-            InfoBar.success("素材载入成功", f"图像尺寸: {pil_img.width}×{pil_img.height}", parent=self, position=InfoBarPosition.TOP_RIGHT, duration=2500)
+            InfoBar.success(
+                "素材载入成功",
+                f"图像尺寸: {pil_img.width}×{pil_img.height}",
+                parent=self,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=2500,
+            )
         except Exception as e:
             InfoBar.error("载入失败", str(e), parent=self, position=InfoBarPosition.TOP_RIGHT)
+
+    def open_video_dialog(self, file_path: Path):
+        """打开视频静止帧对话框并处理模式 A / 模式 B 结果"""
+        from .video_dialog import VideoStillDialog
+
+        try:
+            dlg = VideoStillDialog(file_path, parent=self)
+            if dlg.exec():
+                if dlg.result_mode == "still" and dlg.still_image is not None:
+                    # 模式 A：静止帧载入工坊，更新网格参数
+                    self.sidebar.set_grid_dimensions(dlg.selected_rows, dlg.selected_cols)
+                    self.load_pil_image(
+                        dlg.still_image,
+                        label_name=f"{file_path.name} (静止帧 #{dlg.current_index + 1})",
+                        file_path=file_path,
+                    )
+                elif dlg.result_mode == "sample" and dlg.sampled_frames:
+                    # 模式 B：等距抽帧载入胶卷，直接作为动画序列
+                    self.current_file_path = file_path
+                    self.current_pil_image = None
+                    self.active_frames = dlg.sampled_frames
+                    self.label_filepath.setText(f"🎬 视频抽帧: {file_path.name} (共 {len(dlg.sampled_frames)} 帧)")
+                    self.filmstrip.set_frames(dlg.sampled_frames)
+                    self.canvas.set_animation_frames(
+                        dlg.sampled_frames,
+                        boomerang=self.sidebar.rb_loop_boomerang.isChecked(),
+                    )
+                    self.label_status.setText(f"已抽帧: 共 {len(dlg.sampled_frames)} 帧，可调整右侧节奏并导出")
+                    InfoBar.success(
+                        "抽帧完成",
+                        f"成功从视频均匀抽取 {len(dlg.sampled_frames)} 帧",
+                        parent=self,
+                        position=InfoBarPosition.TOP_RIGHT,
+                        duration=3000,
+                    )
+        except Exception as e:
+            InfoBar.error("处理视频失败", str(e), parent=self, position=InfoBarPosition.TOP_RIGHT)
 
     # ---------------- 交互联动回调 ----------------
 
@@ -368,8 +443,13 @@ class MainWindow(MSFluentWindow):
     # ---------------- 异步切片与导出流水线 ----------------
 
     def _start_slice_and_export(self):
+        # 模式 B：若已有抽帧序列且未载入单张拼图，直接启动导出
+        if self.current_pil_image is None and self.active_frames:
+            self._start_export_only(self.active_frames)
+            return
+
         if not self.current_pil_image or not self.current_grid:
-            InfoBar.warning("提示", "请先载入一张拼图素材！", parent=self, position=InfoBarPosition.TOP_RIGHT)
+            InfoBar.warning("提示", "请先载入一张拼图素材或导入视频！", parent=self, position=InfoBarPosition.TOP_RIGHT)
             return
 
         # 锁定界面，进入计算中
@@ -384,6 +464,38 @@ class MainWindow(MSFluentWindow):
         self.slice_worker.sliceFinished.connect(self._on_slice_finished)
         self.slice_worker.sliceFailed.connect(self._on_worker_failed)
         self.slice_worker.start()
+
+    def _start_export_only(self, frames: List[Image.Image]):
+        """直接导出指定的帧序列 (供模式 B 等距抽帧使用)"""
+        self.sidebar.set_processing_state(True)
+        self.progress_ring.setVisible(True)
+        self.label_status.setText("正在导出动图...")
+
+        preset = self.sidebar.get_export_preset()
+        duration = self.sidebar.slider_duration.value()
+        end_pause = self.sidebar.slider_pause.value()
+        boomerang = self.sidebar.rb_loop_boomerang.isChecked()
+        base_name = self.current_file_path.stem if self.current_file_path else "animation"
+        caption_text = self.sidebar.get_caption_text()
+        caption_pos = self.sidebar.get_caption_position()
+        caption_cfg = self.sidebar.get_caption_config()
+
+        self.export_worker = ExportWorker(
+            frames=frames,
+            preset=preset,
+            duration=duration,
+            end_pause=end_pause,
+            boomerang=boomerang,
+            base_name=base_name,
+            caption_text=caption_text,
+            caption_pos=caption_pos,
+            caption_config=caption_cfg,
+            parent=self,
+        )
+        self.export_worker.stageChanged.connect(self.label_status.setText)
+        self.export_worker.exportFinished.connect(self._on_export_finished)
+        self.export_worker.exportFailed.connect(self._on_worker_failed)
+        self.export_worker.start()
 
     def _on_slice_finished(self, frames: List[Image.Image], grid: GridConfig):
         self.active_frames = frames

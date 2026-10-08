@@ -275,3 +275,78 @@ class ModelFetchWorker(QThread):
         except Exception as exc:
             self.fetchFailed.emit(str(exc) or "获取模型失败")
 
+
+class VideoFrameWorker(QThread):
+    """异步单帧提取工作线程：从 VideoReader 中按索引读取单帧（支持请求防抖与最大边长缩略）。"""
+
+    frameReady = pyqtSignal(int, object)  # (index, PIL.Image)
+    errorOccurred = pyqtSignal(str)
+
+    def __init__(self, reader, index: int, max_edge: Optional[int] = None, parent=None):
+        super().__init__(parent)
+        self.reader = reader
+        self.index = index
+        self.max_edge = max_edge
+
+    def run(self):
+        try:
+            if self.isInterruptionRequested():
+                return
+            img = self.reader.get_frame_by_index(self.index)
+            if self.max_edge is not None and max(img.size) > self.max_edge:
+                img = img.copy()
+                img.thumbnail((self.max_edge, self.max_edge), Image.Resampling.LANCZOS)
+            if self.isInterruptionRequested():
+                return
+            self.frameReady.emit(self.index, img)
+        except Exception as exc:
+            if not self.isInterruptionRequested():
+                self.errorOccurred.emit(str(exc))
+
+
+class VideoSampleWorker(QThread):
+    """异步多帧等距采样工作线程：用于批量抽帧合成动画。"""
+
+    progressChanged = pyqtSignal(int, int)  # (done, total)
+    samplingFinished = pyqtSignal(list)      # List[Image.Image]
+    samplingFailed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        reader,
+        count: int,
+        t_start: float = 0.0,
+        t_end: Optional[float] = None,
+        max_edge: Optional[int] = None,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.reader = reader
+        self.count = count
+        self.t_start = t_start
+        self.t_end = t_end
+        self.max_edge = max_edge
+        self._cancelled = False
+
+    def cancel(self):
+        self._cancelled = True
+        self.requestInterruption()
+
+    def run(self):
+        try:
+            frames = self.reader.sample_evenly(
+                n=self.count,
+                t_start=self.t_start,
+                t_end=self.t_end,
+                max_edge=self.max_edge,
+                progress=lambda done, total: self.progressChanged.emit(done, total),
+                should_cancel=lambda: self._cancelled or self.isInterruptionRequested(),
+            )
+            if self._cancelled or self.isInterruptionRequested():
+                return
+            self.samplingFinished.emit(frames)
+        except Exception as exc:
+            if not (self._cancelled or self.isInterruptionRequested()):
+                self.samplingFailed.emit(str(exc))
+
+

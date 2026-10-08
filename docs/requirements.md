@@ -202,7 +202,33 @@
 
 ---
 
+## v3.6 视频静止帧 → 网格裁切 → 合并 GIF 需求 (已实现)
+
+> 立项规格书：`spec/v3.6_video_still_frames.md`。决策：两种模式都做 / PyAV 解码 / Fluent 模态对话框。
+
+### 1. 视频解码与静止帧选取（无头核心）
+- [x] 新增 `core/video_source.py`：`probe_video` / `VideoReader`（`get_frame_by_index` / `get_frame_at` / `neighbors` / `sample_evenly`），输出 RGB `PIL.Image`；
+- [x] **帧级精确定位**：基于 pts 解码对齐，兼容 VFR 与 B 帧；越界夹紧；
+- [x] 手机竖拍旋转元数据自动校正；坏文件/无视频流抛可读 `VideoError`；
+- [x] 100% 本地解码，不发起任何网络请求。
+
+### 2. 静止帧调整与双模式（界面）
+- [x] `VideoStillDialog`（Fluent 模态对话框）：大预览、时间轴、逐帧/±1 秒微调、邻近帧缩略图、快捷键（←/→、Shift+←/→、Enter）；
+- [x] 异步 Worker：单帧解码防抖（只处理最新请求）与后台线程化；批量抽帧带进度并可取消；
+- [x] **模式 A**：设为静止帧 → 载入工坊画布 → 按 3×3 / 4×6 / 6×4 / 自定义网格裁切 → 合并单张 GIF；
+- [x] **模式 B**：按网格格数（rows×cols）在 [起点, 终点] 区间均匀抽帧 → 进入胶卷 → 合并 GIF；
+- [x] 工坊顶栏「导入视频」按钮与视频文件拖拽入口（`.mp4 .mov .webm .mkv .avi`）；
+- [x] 侧栏 3×3 / 4×6 / 6×4 / 4×4 网格快捷胶囊联动。
+
+### 3. 工程与交付
+- [x] `requirements.txt` 追加 `av>=12`；`GifCreater.spec` 加入 `collect_all('av')`，PyInstaller 打包冒烟并实测体积增量（85.05 MB，增量 30.29 MB）；
+- [x] 测试内动态编码微型视频（不提交视频素材），`core/video_source.py` 覆盖率 92%，整体覆盖率 95.47%；
+- [x] 文档闭环：requirements / design / ARCHITECTURE / roadmap 同步，发布时基线提升至 v3.6.0。
+
+---
+
 ## 需求变更与迭代记录 (Changelog)
+- **2026-10-08 (v3.6.0 - 视频静止帧、网格裁切与合并 GIF 正式交付)**：新增 PyAV 帧级精确视频解码核心（`core/video_source.py`），支持 PTS 索引与变帧率对齐；构建 Windows 11 Fluent 视频静止帧微调对话框（`ui/video_dialog.py`）；打通「静止帧选取 → 3×3/4×6/6×4 网格裁切 → 单张 GIF」模式 A 与「区间等距抽帧 → 胶卷 → 直接合并 GIF」模式 B；主工坊支持顶栏一键导入与视频拖拽；侧栏新增网格快捷预设；核心覆盖率 95%+，PyInstaller 打包验证通过。
 - **2026-09-20 (v3.5.1 动态接入 Provider Models API 与全量模型检索锁定)**：接入各 Provider 标准 `GET /models` 官方接口，配合 `QThread` 异步调度与本地文件级持久化缓存，支持在成百上千个官方模型中毫秒级模糊过滤并锁定模型 ID。
 - **2026-09-20 (Prompt 工作台列表超长省略与标签/删除管理)**：为收藏列表启用 `TextElideMode.ElideRight` 文本溢出省略与悬浮气泡全称提示；新增底部操作栏与右键菜单双通道删除能力并配备 Fluent 二次确认；实现多维标签输入与下拉分类快速筛选。
 - **2026-09-20 (GIF 动图透明通道保留与边缘抗光晕毛刺修复)**：彻底根治 RGBA 导出 GIF 时背景变成黑色以及边缘产生黑边光晕瑕疵的问题，构建统一全局量化调色板、透明通道专属槽位与 disposal=2 时序刷新机制。
